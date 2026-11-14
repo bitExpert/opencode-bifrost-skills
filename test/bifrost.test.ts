@@ -22,7 +22,9 @@ describe("normalizeBaseUrl", () => {
 
   test("accepts a pasted /api suffix", () => {
     expect(normalizeBaseUrl("https://bifrost.example.com/api")).toBe("https://bifrost.example.com");
-    expect(normalizeBaseUrl("https://bifrost.example.com/api/")).toBe("https://bifrost.example.com");
+    expect(normalizeBaseUrl("https://bifrost.example.com/api/")).toBe(
+      "https://bifrost.example.com",
+    );
   });
 
   test("rejects credentials and invalid schemes", () => {
@@ -69,7 +71,13 @@ describe("BifrostClient.catalog", () => {
     const catalog = await new BifrostClient({ baseUrl }).catalog();
     expect(catalog.source).toBe("marketplace");
     expect(catalog.skills).toEqual([
-      { name: "git-release", id: "git-release", plugin: "bifrost-git-release", description: "Release helper", version: "1.2.0" },
+      {
+        name: "git-release",
+        id: "git-release",
+        plugin: "bifrost-git-release",
+        description: "Release helper",
+        version: "1.2.0",
+      },
       { name: "other", id: "other", plugin: "other", description: "Unrelated" },
     ]);
   });
@@ -93,7 +101,9 @@ describe("BifrostClient.catalog", () => {
   });
 
   test("reports every endpoint as unavailable", async () => {
-    const baseUrl = serve(() => new Response("down", { status: 503, headers: { "retry-after": "30" } }));
+    const baseUrl = serve(
+      () => new Response("down", { status: 503, headers: { "retry-after": "30" } }),
+    );
     const client = new BifrostClient({ baseUrl });
     await expect(client.catalog()).rejects.toMatchObject({ code: "unavailable" });
   });

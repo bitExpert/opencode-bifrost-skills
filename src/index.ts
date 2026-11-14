@@ -14,6 +14,7 @@
 import { Plugin } from "@opencode/plugin";
 
 type Context = Plugin.Context;
+
 import { parseArgs, readBoolean, readScope, readString, readTimeout } from "./args.js";
 import { BifrostError, describeError } from "./bifrost.js";
 import {
@@ -186,9 +187,11 @@ export default Plugin.define({
         try {
           const patch: ConfigPatch = {};
           if (input.reset === true) patch.reset = true;
-          if (typeof input.baseUrl === "string" && input.baseUrl.trim() !== "") patch.baseUrl = input.baseUrl;
+          if (typeof input.baseUrl === "string" && input.baseUrl.trim() !== "")
+            patch.baseUrl = input.baseUrl;
           if (input.clearApiKey === true) patch.apiKey = null;
-          else if (typeof input.apiKey === "string" && input.apiKey.trim() !== "") patch.apiKey = input.apiKey;
+          else if (typeof input.apiKey === "string" && input.apiKey.trim() !== "")
+            patch.apiKey = input.apiKey;
           if (typeof input.timeoutMs === "number") patch.timeoutMs = input.timeoutMs;
           return hasPatch(patch) ? await operations.configure(patch) : await operations.summary();
         } catch (error) {
@@ -216,7 +219,8 @@ export default Plugin.define({
               };
             }
             const scope = readScope(args) ?? "global";
-            const directory = scope === "project" ? await sessionDirectory(ctx, invocation.sessionID) : undefined;
+            const directory =
+              scope === "project" ? await sessionDirectory(ctx, invocation.sessionID) : undefined;
             const result = await operations.install({
               name,
               scope,
@@ -240,7 +244,8 @@ export default Plugin.define({
           const outcome = await runCommand(async () => {
             const args = parseArgs(invocation.prompt.text);
             const scope = readScope(args) ?? "global";
-            const directory = scope === "project" ? await sessionDirectory(ctx, invocation.sessionID) : undefined;
+            const directory =
+              scope === "project" ? await sessionDirectory(ctx, invocation.sessionID) : undefined;
             const result = await operations.installAll({
               scope,
               directory,
@@ -298,7 +303,12 @@ export default Plugin.define({
                 result.results.length > 0
                   ? `Updated ${result.results.length} skill${result.results.length === 1 ? "" : "s"}`
                   : "Everything is up to date.",
-              kind: result.failures.length > 0 ? "warning" : result.results.length > 0 ? "success" : "info",
+              kind:
+                result.failures.length > 0
+                  ? "warning"
+                  : result.results.length > 0
+                    ? "success"
+                    : "info",
             };
           });
           await report(ctx, emitNotice, invocation.sessionID, outcome);
@@ -349,7 +359,9 @@ export default Plugin.define({
             const timeoutMs = readTimeout(args);
             if (timeoutMs) patch.timeoutMs = timeoutMs;
 
-            const summary = hasPatch(patch) ? await operations.configure(patch) : await operations.summary();
+            const summary = hasPatch(patch)
+              ? await operations.configure(patch)
+              : await operations.summary();
             return {
               text: formatConfig(summary),
               notice: hasPatch(patch) ? "Bifrost settings saved." : `Gateway: ${summary.baseUrl}`,
@@ -367,7 +379,11 @@ async function runCommand(run: () => Promise<CommandOutcome>): Promise<CommandOu
   try {
     return await run();
   } catch (error) {
-    return { text: `**Bifrost skills error**\n\n${describeError(error)}`, notice: describeError(error), kind: "error" };
+    return {
+      text: `**Bifrost skills error**\n\n${describeError(error)}`,
+      notice: describeError(error),
+      kind: "error",
+    };
   }
 }
 
@@ -377,7 +393,9 @@ async function report(
   sessionID: string,
   outcome: CommandOutcome,
 ): Promise<void> {
-  await emitNotice({ kind: outcome.kind, message: outcome.notice, title: COMMAND_GROUP }).catch(() => undefined);
+  await emitNotice({ kind: outcome.kind, message: outcome.notice, title: COMMAND_GROUP }).catch(
+    () => undefined,
+  );
 
   await ctx.session
     .synthetic({
@@ -404,7 +422,8 @@ function scopeOf(value: unknown): InstallScope {
 
 function overridesOf(input: { baseUrl?: unknown; apiKey?: unknown }): ConfigPatch {
   const patch: ConfigPatch = {};
-  if (typeof input.baseUrl === "string" && input.baseUrl.trim() !== "") patch.baseUrl = input.baseUrl;
+  if (typeof input.baseUrl === "string" && input.baseUrl.trim() !== "")
+    patch.baseUrl = input.baseUrl;
   if (typeof input.apiKey === "string" && input.apiKey.trim() !== "") patch.apiKey = input.apiKey;
   return patch;
 }

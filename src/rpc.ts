@@ -90,9 +90,15 @@ const skillSummarySchema = object(
 const configSummarySchema = object(
   {
     baseUrl: string(),
-    baseUrlSource: { type: "string", enum: ["command", "storage", "options", "environment", "default"] },
+    baseUrlSource: {
+      type: "string",
+      enum: ["command", "storage", "options", "environment", "default"],
+    },
     hasApiKey: boolean(),
-    apiKeySource: { type: "string", enum: ["command", "storage", "options", "environment", "none"] },
+    apiKeySource: {
+      type: "string",
+      enum: ["command", "storage", "options", "environment", "none"],
+    },
     apiKeyHint: string(),
     timeoutMs: number(),
     globalSkillsDirectory: string(),

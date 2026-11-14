@@ -14,8 +14,8 @@
  * when both catalog endpoints are unavailable.
  */
 
-import { decodeSkillArchive, MAX_ARCHIVE_BYTES, skillId, ZipError } from "./zip.js";
 import type { Catalog, CatalogSource, SkillSummary } from "./types.js";
+import { decodeSkillArchive, MAX_ARCHIVE_BYTES, skillId, ZipError } from "./zip.js";
 
 export type BifrostErrorCode =
   | "invalid"
@@ -36,7 +36,11 @@ export class BifrostError extends Error {
   readonly status?: number;
   readonly retryAfter?: string;
 
-  constructor(code: BifrostErrorCode, message: string, options?: { status?: number; retryAfter?: string }) {
+  constructor(
+    code: BifrostErrorCode,
+    message: string,
+    options?: { status?: number; retryAfter?: string },
+  ) {
     super(message);
     this.name = "BifrostError";
     this.code = code;
@@ -75,7 +79,10 @@ export function normalizeBaseUrl(input: string): string {
     throw new BifrostError("invalid", "The gateway URL must use http:// or https://.");
   }
   if (url.username || url.password) {
-    throw new BifrostError("invalid", "Do not put credentials in the gateway URL; use the apiKey option instead.");
+    throw new BifrostError(
+      "invalid",
+      "Do not put credentials in the gateway URL; use the apiKey option instead.",
+    );
   }
 
   let pathname = url.pathname.replace(/\/+$/, "");
@@ -104,7 +111,8 @@ export class BifrostClient implements Gateway {
   constructor(options: ClientOptions) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl);
     this.apiKey = options.apiKey;
-    this.timeoutMs = options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : DEFAULT_TIMEOUT_MS;
+    this.timeoutMs =
+      options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : DEFAULT_TIMEOUT_MS;
   }
 
   async catalog(signal?: AbortSignal): Promise<Catalog> {
@@ -157,7 +165,11 @@ export class BifrostClient implements Gateway {
     );
   }
 
-  private catalogResult(source: CatalogSource, skills: SkillSummary[], warnings: string[]): Catalog {
+  private catalogResult(
+    source: CatalogSource,
+    skills: SkillSummary[],
+    warnings: string[],
+  ): Catalog {
     return {
       baseUrl: this.baseUrl,
       source,
@@ -186,7 +198,9 @@ export class BifrostClient implements Gateway {
       for (const plugin of plugins) {
         const pluginName = stringField(plugin, "name");
         if (!pluginName) continue;
-        const name = pluginName.startsWith("bifrost-") ? pluginName.slice("bifrost-".length) : pluginName;
+        const name = pluginName.startsWith("bifrost-")
+          ? pluginName.slice("bifrost-".length)
+          : pluginName;
         if (!name) continue;
         const description = stringField(plugin, "description");
         const version = stringField(plugin, "version");
@@ -205,7 +219,10 @@ export class BifrostClient implements Gateway {
     }
   }
 
-  private async apiCatalog(signal: AbortSignal | undefined, warnings: string[]): Promise<SkillSummary[] | undefined> {
+  private async apiCatalog(
+    signal: AbortSignal | undefined,
+    warnings: string[],
+  ): Promise<SkillSummary[] | undefined> {
     const limit = 100;
     const skills: SkillSummary[] = [];
     let offset = 0;
@@ -215,9 +232,16 @@ export class BifrostClient implements Gateway {
       const url = `${this.baseUrl}/api/skills?limit=${limit}&offset=${offset}`;
       let response: Response;
       try {
-        response = await this.request(url, { accept: "application/json", signal, notFound: "The skills API" });
+        response = await this.request(url, {
+          accept: "application/json",
+          signal,
+          notFound: "The skills API",
+        });
       } catch (error) {
-        if (error instanceof BifrostError && (error.code === "not-found" || error.code === "unavailable")) {
+        if (
+          error instanceof BifrostError &&
+          (error.code === "not-found" || error.code === "unavailable")
+        ) {
           return sawResponse ? skills : undefined;
         }
         if (error instanceof BifrostError && error.code === "unauthorized") {
@@ -241,7 +265,8 @@ export class BifrostClient implements Gateway {
           const name = stringField(item, "name");
           if (!name) continue;
           const description = stringField(item, "description");
-          const version = stringField(item, "latest_version") ?? stringField(item, "highest_version");
+          const version =
+            stringField(item, "latest_version") ?? stringField(item, "highest_version");
           skills.push({
             name,
             id: skillId(name),
@@ -263,7 +288,10 @@ export class BifrostClient implements Gateway {
     return skills;
   }
 
-  private async zipCatalog(signal: AbortSignal | undefined, warnings: string[]): Promise<SkillSummary[] | undefined> {
+  private async zipCatalog(
+    signal: AbortSignal | undefined,
+    warnings: string[],
+  ): Promise<SkillSummary[] | undefined> {
     let bytes: Uint8Array;
     try {
       bytes = await this.downloadAll(signal);
@@ -285,8 +313,16 @@ export class BifrostClient implements Gateway {
     }
   }
 
-  private async downloadArchive(url: string, signal: AbortSignal | undefined, label: string): Promise<Uint8Array> {
-    const response = await this.request(url, { accept: "application/zip", signal, notFound: label });
+  private async downloadArchive(
+    url: string,
+    signal: AbortSignal | undefined,
+    label: string,
+  ): Promise<Uint8Array> {
+    const response = await this.request(url, {
+      accept: "application/zip",
+      signal,
+      notFound: label,
+    });
     const length = Number(response.headers.get("content-length") ?? "");
     if (Number.isFinite(length) && length > MAX_ARCHIVE_BYTES) {
       throw new BifrostError("corrupt", `${label} archive is larger than the 64 MiB limit.`);
@@ -305,15 +341,25 @@ export class BifrostClient implements Gateway {
   }
 
   /** Reads a response body under the request timeout and the archive cap. */
-  private async readBody(response: Response, signal: AbortSignal | undefined, label: string): Promise<Uint8Array> {
+  private async readBody(
+    response: Response,
+    signal: AbortSignal | undefined,
+    label: string,
+  ): Promise<Uint8Array> {
     if (!response.body) return new Uint8Array(await response.arrayBuffer());
 
     const controller = new AbortController();
     const timeout = setTimeout(() => {
-      controller.abort(new BifrostError("timeout", `Reading the ${label.toLowerCase()} timed out after ${this.timeoutMs} ms.`));
+      controller.abort(
+        new BifrostError(
+          "timeout",
+          `Reading the ${label.toLowerCase()} timed out after ${this.timeoutMs} ms.`,
+        ),
+      );
     }, this.timeoutMs);
     timeout.unref?.();
-    const onAbort = () => controller.abort(new BifrostError("cancelled", "The request was cancelled."));
+    const onAbort = () =>
+      controller.abort(new BifrostError("cancelled", "The request was cancelled."));
     if (signal) {
       if (signal.aborted) onAbort();
       else signal.addEventListener("abort", onAbort, { once: true });
@@ -346,9 +392,15 @@ export class BifrostClient implements Gateway {
       if (reason instanceof BifrostError) throw reason;
       if (signal?.aborted) throw new BifrostError("cancelled", "The request was cancelled.");
       if (isAbort(error)) {
-        throw new BifrostError("timeout", `Reading the ${label.toLowerCase()} timed out after ${this.timeoutMs} ms.`);
+        throw new BifrostError(
+          "timeout",
+          `Reading the ${label.toLowerCase()} timed out after ${this.timeoutMs} ms.`,
+        );
       }
-      throw new BifrostError("network", `Could not read the response from ${this.baseUrl}: ${messageOf(error)}`);
+      throw new BifrostError(
+        "network",
+        `Could not read the response from ${this.baseUrl}: ${messageOf(error)}`,
+      );
     } finally {
       clearTimeout(timeout);
       signal?.removeEventListener("abort", onAbort);
@@ -363,7 +415,10 @@ export class BifrostClient implements Gateway {
     try {
       return await this.request(url, { ...options, notFound: "catalog endpoint" });
     } catch (error) {
-      if (error instanceof BifrostError && (error.code === "not-found" || error.code === "unavailable")) {
+      if (
+        error instanceof BifrostError &&
+        (error.code === "not-found" || error.code === "unavailable")
+      ) {
         return undefined;
       }
       throw error;
@@ -376,11 +431,17 @@ export class BifrostClient implements Gateway {
   ): Promise<Response> {
     const controller = new AbortController();
     const timeout = setTimeout(() => {
-      controller.abort(new BifrostError("timeout", `Request to ${this.baseUrl} timed out after ${this.timeoutMs} ms.`));
+      controller.abort(
+        new BifrostError(
+          "timeout",
+          `Request to ${this.baseUrl} timed out after ${this.timeoutMs} ms.`,
+        ),
+      );
     }, this.timeoutMs);
     timeout.unref?.();
 
-    const onAbort = () => controller.abort(new BifrostError("cancelled", "The request was cancelled."));
+    const onAbort = () =>
+      controller.abort(new BifrostError("cancelled", "The request was cancelled."));
     if (options.signal) {
       if (options.signal.aborted) onAbort();
       else options.signal.addEventListener("abort", onAbort, { once: true });
@@ -404,9 +465,13 @@ export class BifrostClient implements Gateway {
       if (error instanceof BifrostError) throw error;
       const reason = controller.signal.reason;
       if (reason instanceof BifrostError) throw reason;
-      if (options.signal?.aborted) throw new BifrostError("cancelled", "The request was cancelled.");
+      if (options.signal?.aborted)
+        throw new BifrostError("cancelled", "The request was cancelled.");
       if (isAbort(error)) {
-        throw new BifrostError("timeout", `Request to ${this.baseUrl} timed out after ${this.timeoutMs} ms.`);
+        throw new BifrostError(
+          "timeout",
+          `Request to ${this.baseUrl} timed out after ${this.timeoutMs} ms.`,
+        );
       }
       throw new BifrostError(
         "network",
@@ -431,9 +496,13 @@ export class BifrostClient implements Gateway {
       );
     }
     if (response.status === 404) {
-      throw new BifrostError("not-found", `${options.notFound} was not found on ${this.baseUrl}${suffix}.`, {
-        status: response.status,
-      });
+      throw new BifrostError(
+        "not-found",
+        `${options.notFound} was not found on ${this.baseUrl}${suffix}.`,
+        {
+          status: response.status,
+        },
+      );
     }
     if (response.status === 503) {
       throw new BifrostError(
@@ -444,9 +513,13 @@ export class BifrostClient implements Gateway {
         { status: response.status, retryAfter },
       );
     }
-    throw new BifrostError("http", `${options.notFound} failed with HTTP ${response.status}${suffix}.`, {
-      status: response.status,
-    });
+    throw new BifrostError(
+      "http",
+      `${options.notFound} failed with HTTP ${response.status}${suffix}.`,
+      {
+        status: response.status,
+      },
+    );
   }
 }
 
@@ -476,14 +549,18 @@ function readPlugins(data: unknown): Array<Record<string, unknown>> | undefined 
   if (!data || typeof data !== "object") return undefined;
   const plugins = (data as { plugins?: unknown }).plugins;
   if (!Array.isArray(plugins)) return undefined;
-  return plugins.filter((item): item is Record<string, unknown> => !!item && typeof item === "object");
+  return plugins.filter(
+    (item): item is Record<string, unknown> => !!item && typeof item === "object",
+  );
 }
 
 function readSkills(data: unknown): Array<Record<string, unknown>> | undefined {
   if (!data || typeof data !== "object") return undefined;
   const skills = (data as { skills?: unknown }).skills;
   if (!Array.isArray(skills)) return undefined;
-  return skills.filter((item): item is Record<string, unknown> => !!item && typeof item === "object");
+  return skills.filter(
+    (item): item is Record<string, unknown> => !!item && typeof item === "object",
+  );
 }
 
 function stringField(value: Record<string, unknown>, key: string): string | undefined {

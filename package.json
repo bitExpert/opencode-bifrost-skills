@@ -14,10 +14,17 @@
     "LICENSE"
   ],
   "license": "MIT",
-  "repository": { "type": "git", "url": "git@github.com:bitExpert/opencode-bifrost-skills.git" },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:bitExpert/opencode-bifrost-skills.git"
+  },
   "homepage": "https://gitlab.com/bitExpert/opencode-bifrost-skills",
-  "bugs": { "url": "https://gitlab.com/bitExpert/opencode-bifrost-skills-/issues" },
-  "engines": { "bun": ">=1.2" },
+  "bugs": {
+    "url": "https://gitlab.com/bitExpert/opencode-bifrost-skills-/issues"
+  },
+  "engines": {
+    "bun": ">=1.2"
+  },
   "keywords": [
     "opencode",
     "opencode-plugin",
@@ -25,11 +32,14 @@
     "skills",
     "agent-skills"
   ],
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
+    "lint": "biome check .",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "check": "npm run typecheck && npm run test"
+    "check": "npm run lint && npm run typecheck && npm run test"
   },
   "dependencies": {
     "@opencode/plugin": "2.2.5",
@@ -37,6 +47,7 @@
     "yaml": "^2.6.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
     "@types/bun": "^1.2.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0"

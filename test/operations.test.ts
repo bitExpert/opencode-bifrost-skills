@@ -4,9 +4,15 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { BifrostError } from "../src/bifrost.js";
 import { compareVersions, Operations, readMarker, resolveInput } from "../src/operations.js";
-import { MARKER_FILE, globalSkillsDirectory } from "../src/settings.js";
+import { globalSkillsDirectory, MARKER_FILE } from "../src/settings.js";
 import { hashFiles, skillId } from "../src/zip.js";
-import { makeZip, memoryStorage, mockGateway, skillMarkdown, type MockGatewayOptions } from "./helpers.js";
+import {
+  type MockGatewayOptions,
+  makeZip,
+  memoryStorage,
+  mockGateway,
+  skillMarkdown,
+} from "./helpers.js";
 
 let root: string;
 let previousHome: string | undefined;
@@ -62,7 +68,9 @@ describe("install", () => {
     expect(gateway.downloads).toEqual(["git-release"]);
 
     const skillDirectory = path.join(globalSkillsDirectory(), "git-release");
-    expect(await readFile(path.join(skillDirectory, "SKILL.md"), "utf8")).toContain("Release helper");
+    expect(await readFile(path.join(skillDirectory, "SKILL.md"), "utf8")).toContain(
+      "Release helper",
+    );
     const script = path.join(skillDirectory, "scripts", "release.sh");
     expect(await readFile(script, "utf8")).toBe("#!/bin/sh\n");
     // The shebang script keeps its executable bit.
@@ -123,7 +131,9 @@ describe("install", () => {
     const { ops } = operations({
       archives: { weird: makeZip({ "weird/readme.md": "hi" }) },
     });
-    await expect(ops.install({ name: "weird", scope: "global" })).rejects.toMatchObject({ code: "corrupt" });
+    await expect(ops.install({ name: "weird", scope: "global" })).rejects.toMatchObject({
+      code: "corrupt",
+    });
   });
 
   test("refuses to replace a foreign directory", async () => {
@@ -192,9 +202,11 @@ describe("update", () => {
     const result = await second.ops.update({ name: "git-release" });
 
     expect(result.results).toHaveLength(1);
-    expect(result.results[0]!.action).toBe("updated");
-    expect(result.results[0]!.version).toBe("1.1.0");
-    expect(await readFile(path.join(globalSkillsDirectory(), "git-release", "SKILL.md"), "utf8")).toContain("New body");
+    expect(result.results[0]?.action).toBe("updated");
+    expect(result.results[0]?.version).toBe("1.1.0");
+    expect(
+      await readFile(path.join(globalSkillsDirectory(), "git-release", "SKILL.md"), "utf8"),
+    ).toContain("New body");
   });
 
   test("reports unchanged content", async () => {
@@ -213,11 +225,19 @@ describe("update", () => {
     const marker = await readMarker(path.join(globalSkillsDirectory(), "git-release"));
     expect(marker).toBeDefined();
 
-    const second = operations({ skills: [{ name: "git-release", version: "0.9.0" }], archives: { "git-release": releaseArchive("Old", "0.9.0") } }, newerStorage);
+    const second = operations(
+      {
+        skills: [{ name: "git-release", version: "0.9.0" }],
+        archives: { "git-release": releaseArchive("Old", "0.9.0") },
+      },
+      newerStorage,
+    );
     // The installed marker still says 1.0.0, so the older remote is ignored.
     const result = await second.ops.update({ name: "git-release" });
     expect(result.results).toEqual([]);
-    expect(await readFile(path.join(globalSkillsDirectory(), "git-release", "SKILL.md"), "utf8")).toContain("Release helper");
+    expect(
+      await readFile(path.join(globalSkillsDirectory(), "git-release", "SKILL.md"), "utf8"),
+    ).toContain("Release helper");
   });
 
   test("fails when nothing is installed", async () => {
@@ -263,7 +283,9 @@ describe("remove", () => {
     const { ops } = operations(catalog);
     const { mkdir } = await import("node:fs/promises");
     await mkdir(path.join(globalSkillsDirectory(), "git-release"), { recursive: true });
-    await expect(ops.remove({ name: "git-release" })).rejects.toMatchObject({ code: "not-installed" });
+    await expect(ops.remove({ name: "git-release" })).rejects.toMatchObject({
+      code: "not-installed",
+    });
   });
 
   test("refuses ambiguous scope", async () => {

@@ -9,6 +9,7 @@
 import { Plugin } from "@opencode/plugin/tui";
 
 type Context = Plugin.Context;
+
 import { BifrostRpc } from "./rpc.js";
 
 type Scope = "global" | "project";
@@ -123,7 +124,9 @@ async function browse(context: Context, rpc: SkillsRpc): Promise<void> {
       title: "No skills available",
       message: [
         `The gateway at ${catalog.baseUrl} did not return any skills.`,
-        ...(catalog.warnings.length > 0 ? ["", ...catalog.warnings.map((warning) => `• ${warning}`)] : []),
+        ...(catalog.warnings.length > 0
+          ? ["", ...catalog.warnings.map((warning) => `• ${warning}`)]
+          : []),
       ].join("\n"),
     });
     return;
@@ -149,13 +152,15 @@ async function browse(context: Context, rpc: SkillsRpc): Promise<void> {
       placeholder: "Search skills…",
       options: catalog.skills.map((skill) => {
         const scopes = scopesById.get(skill.id);
-        const installedLabel = scopes && scopes.length > 0 ? `installed ${scopes.join(" + ")}` : undefined;
+        const installedLabel =
+          scopes && scopes.length > 0 ? `installed ${scopes.join(" + ")}` : undefined;
         const version = skill.version ? `v${skill.version}` : undefined;
         return {
           title: `${skill.id}${installedLabel ? " ✓" : ""}`,
           value: skill,
           description:
-            [version, skill.description ?? "No description"].filter(Boolean).join(" · ") || "No description",
+            [version, skill.description ?? "No description"].filter(Boolean).join(" · ") ||
+            "No description",
           ...(installedLabel ? { footer: installedLabel } : {}),
         };
       }),
@@ -163,7 +168,9 @@ async function browse(context: Context, rpc: SkillsRpc): Promise<void> {
         const needle = query.trim().toLowerCase();
         if (!needle) return options;
         return options.filter((option) =>
-          `${option.title} ${option.description ?? ""} ${option.footer ?? ""}`.toLowerCase().includes(needle),
+          `${option.title} ${option.description ?? ""} ${option.footer ?? ""}`
+            .toLowerCase()
+            .includes(needle),
         );
       },
     });
@@ -184,7 +191,9 @@ async function browse(context: Context, rpc: SkillsRpc): Promise<void> {
       return;
     }
 
-    installed = installed.filter((record) => !(record.id === result.id && record.scope === result.scope));
+    installed = installed.filter(
+      (record) => !(record.id === result.id && record.scope === result.scope),
+    );
     installed.push({
       id: result.id,
       name: result.name,
@@ -225,18 +234,16 @@ async function chooseScope(
       {
         title: "Global",
         value: "global",
-        description:
-          existing.some((record) => record.scope === "global")
-            ? "Already installed globally — will ask before replacing"
-            : "Available in every project",
+        description: existing.some((record) => record.scope === "global")
+          ? "Already installed globally — will ask before replacing"
+          : "Available in every project",
       },
       {
         title: "Project",
         value: "project",
-        description:
-          existing.some((record) => record.scope === "project")
-            ? "Already installed in this project — will ask before replacing"
-            : `Only in ${directory}`,
+        description: existing.some((record) => record.scope === "project")
+          ? "Already installed in this project — will ask before replacing"
+          : `Only in ${directory}`,
       },
     ],
   });
@@ -304,7 +311,11 @@ function codeOf(error: unknown): string | undefined {
 }
 
 function messageOf(error: unknown): string {
-  if (error && typeof error === "object" && typeof (error as { message?: unknown }).message === "string") {
+  if (
+    error &&
+    typeof error === "object" &&
+    typeof (error as { message?: unknown }).message === "string"
+  ) {
     return (error as { message: string }).message;
   }
   if (error instanceof Error) return error.message;

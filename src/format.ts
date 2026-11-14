@@ -7,8 +7,8 @@ import type {
   Catalog,
   ConfigSummary,
   InstallBatchResult,
-  InstallResult,
   InstalledSkill,
+  InstallResult,
   RemoveResult,
   UpdateResult,
 } from "./types.js";
@@ -35,7 +35,10 @@ export function formatInstall(result: InstallResult): string {
 export function formatBatch(result: InstallBatchResult): string {
   const lines: string[] = [];
   if (result.results.length > 0) {
-    lines.push(`**Installed ${result.results.length} skill${result.results.length === 1 ? "" : "s"}**`, "");
+    lines.push(
+      `**Installed ${result.results.length} skill${result.results.length === 1 ? "" : "s"}**`,
+      "",
+    );
     for (const item of result.results) {
       const version = item.version ? ` v${item.version}` : "";
       lines.push(`- \`${item.id}\`${version} → \`${displayPath(item.directory)}\``);
@@ -85,7 +88,10 @@ export function formatUpdate(result: UpdateResult): string {
     lines.push("All installed skills are already up to date.");
   }
   if (result.results.length > 0) {
-    lines.push(`**Updated ${result.results.length} skill${result.results.length === 1 ? "" : "s"}**`, "");
+    lines.push(
+      `**Updated ${result.results.length} skill${result.results.length === 1 ? "" : "s"}**`,
+      "",
+    );
     for (const item of result.results) {
       const version = item.version ? ` v${item.version}` : "";
       lines.push(`- \`${item.id}\`${version}`);
@@ -93,9 +99,7 @@ export function formatUpdate(result: UpdateResult): string {
   }
   if (result.unchanged.length > 0) {
     if (lines.length > 0) lines.push("");
-    lines.push(
-      `Unchanged: ${result.unchanged.map((item) => `\`${item.id}\``).join(", ")}`,
-    );
+    lines.push(`Unchanged: ${result.unchanged.map((item) => `\`${item.id}\``).join(", ")}`);
   }
   if (result.failures.length > 0) {
     if (lines.length > 0) lines.push("");

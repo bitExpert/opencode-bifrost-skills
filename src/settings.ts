@@ -14,6 +14,7 @@ import path from "node:path";
 import type { Plugin } from "@opencode/plugin";
 
 type StorageDomain = Plugin.Context["storage"];
+
 import { BifrostError, isValidBaseUrl, normalizeBaseUrl } from "./bifrost.js";
 import type {
   ConfigPatch,
@@ -35,7 +36,10 @@ export interface SettingsDeps {
   home?: string;
 }
 
-export function globalConfigDirectory(env: NodeJS.ProcessEnv = process.env, home = homedir()): string {
+export function globalConfigDirectory(
+  env: NodeJS.ProcessEnv = process.env,
+  home = homedir(),
+): string {
   if (env.OPENCODE_CONFIG_DIR) return path.resolve(expandHome(env.OPENCODE_CONFIG_DIR, home));
   const configRoot = env.XDG_CONFIG_HOME
     ? path.resolve(expandHome(env.XDG_CONFIG_HOME, home))
@@ -43,7 +47,10 @@ export function globalConfigDirectory(env: NodeJS.ProcessEnv = process.env, home
   return path.join(configRoot, "opencode");
 }
 
-export function globalSkillsDirectory(env: NodeJS.ProcessEnv = process.env, home = homedir()): string {
+export function globalSkillsDirectory(
+  env: NodeJS.ProcessEnv = process.env,
+  home = homedir(),
+): string {
   return path.join(globalConfigDirectory(env, home), "skills");
 }
 
@@ -169,7 +176,8 @@ export class SettingsStore {
       else next.apiKey = patch.apiKey.trim();
     }
     if (patch.timeoutMs !== undefined) {
-      if (patch.timeoutMs <= 0) throw new BifrostError("invalid", "timeoutMs must be greater than zero.");
+      if (patch.timeoutMs <= 0)
+        throw new BifrostError("invalid", "timeoutMs must be greater than zero.");
       next.timeoutMs = Math.round(patch.timeoutMs);
     }
 

@@ -107,7 +107,7 @@ export function parseArgs(input: string | undefined): ParsedArgs {
   const options = new Map<string, OptionValue>();
 
   for (let index = 0; index < tokens.length; index += 1) {
-    const token = tokens[index]!;
+    const token = tokens[index] as string;
 
     if (token === "--") {
       positionals.push(...tokens.slice(index + 1));

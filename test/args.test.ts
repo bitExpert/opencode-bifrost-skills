@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { parseArgs, readBoolean, readScope, readString, readTimeout, tokenize } from "../src/args.js";
+import {
+  parseArgs,
+  readBoolean,
+  readScope,
+  readString,
+  readTimeout,
+  tokenize,
+} from "../src/args.js";
 
 describe("tokenize", () => {
   test("splits on whitespace", () => {

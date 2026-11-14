@@ -7,11 +7,12 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { promises as fs } from "node:fs";
+import { type Dirent, promises as fs } from "node:fs";
 import path from "node:path";
 import type { Plugin } from "@opencode/plugin";
 
 type StorageDomain = Plugin.Context["storage"];
+
 import { BifrostClient, BifrostError, describeError, type Gateway } from "./bifrost.js";
 import {
   displayPath,
@@ -27,16 +28,16 @@ import type {
   ConfigSummary,
   Failure,
   InstallBatchResult,
+  InstalledSkill,
   InstallResult,
   InstallScope,
-  InstalledSkill,
   RemoveResult,
   ResolvedSettings,
   SkillSummary,
   Target,
   UpdateResult,
 } from "./types.js";
-import { decodeSkillArchive, fileMode, hashFiles, skillId, type SkillPackage } from "./zip.js";
+import { decodeSkillArchive, fileMode, hashFiles, type SkillPackage, skillId } from "./zip.js";
 
 export interface OperationsDeps {
   storage: StorageDomain;
@@ -191,7 +192,8 @@ export class Operations {
           });
           result.results.push(installed);
         } catch (error) {
-          if (isExistsError(error)) result.skipped.push({ name: skill.name, message: describeError(error) });
+          if (isExistsError(error))
+            result.skipped.push({ name: skill.name, message: describeError(error) });
           else result.failures.push({ name: skill.name, message: describeError(error) });
         }
       }
@@ -313,9 +315,16 @@ export class Operations {
   async remove(input: RemoveInput): Promise<RemoveResult> {
     const records = await this.selectRecords(input.name, input.scope, input.directory);
     if (records.length === 0) {
-      throw new BifrostError("not-installed", `No installed Bifrost skill matches '${input.name}'.`);
+      throw new BifrostError(
+        "not-installed",
+        `No installed Bifrost skill matches '${input.name}'.`,
+      );
     }
-    if (!input.scope && records.some((record) => record.scope === "global") && records.some((record) => record.scope === "project")) {
+    if (
+      !input.scope &&
+      records.some((record) => record.scope === "global") &&
+      records.some((record) => record.scope === "project")
+    ) {
       throw new BifrostError(
         "invalid",
         `'${input.name}' is installed in both global and project scope. Pass --global or --project.`,
@@ -340,7 +349,12 @@ export class Operations {
       }
       await fs.rm(record.directory, { recursive: true, force: true });
       await this.storage.remove(storageKey(record)).catch(() => undefined);
-      removed.push({ id: record.id, name: record.name, directory: record.directory, scope: record.scope });
+      removed.push({
+        id: record.id,
+        name: record.name,
+        directory: record.directory,
+        scope: record.scope,
+      });
     }
 
     await this.reload();
@@ -348,7 +362,11 @@ export class Operations {
   }
 
   /** Resolves a raw name, marketplace plugin name, or skill id to a record. */
-  async selectRecords(name: string | undefined, scope: InstallScope | undefined, directory?: string): Promise<InstalledSkill[]> {
+  async selectRecords(
+    name: string | undefined,
+    scope: InstallScope | undefined,
+    directory?: string,
+  ): Promise<InstalledSkill[]> {
     const globalRecords = await listRoot(resolveTarget("global").root, "global");
     const projectRecords = directory
       ? await listRoot(projectSkillsDirectory(directory), "project")
@@ -415,7 +433,10 @@ export class Operations {
     const id = skillId(input.id);
     if (!id) throw new BifrostError("invalid", "The skill id is empty after sanitizing.");
     if (!input.pkg.files.has("SKILL.md")) {
-      throw new BifrostError("corrupt", `The archive for '${input.name}' does not contain SKILL.md.`);
+      throw new BifrostError(
+        "corrupt",
+        `The archive for '${input.name}' does not contain SKILL.md.`,
+      );
     }
 
     const finalDirectory = path.join(input.target.root, id);
@@ -438,7 +459,10 @@ export class Operations {
       for (const [relative, bytes] of input.pkg.files) {
         const destination = path.join(staging, ...relative.split("/"));
         if (!isInside(staging, destination)) {
-          throw new BifrostError("unsafe", `Refusing to write outside the skill directory: ${relative}`);
+          throw new BifrostError(
+            "unsafe",
+            `Refusing to write outside the skill directory: ${relative}`,
+          );
         }
         await fs.mkdir(path.dirname(destination), { recursive: true });
         // Shebang files keep their executable bit; everything else is 0644.
@@ -502,7 +526,8 @@ export async function readMarker(directory: string): Promise<InstalledSkill | un
     const value = JSON.parse(raw) as unknown;
     if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
     const record = value as Record<string, unknown>;
-    if (record.schema !== 1 || typeof record.id !== "string" || typeof record.name !== "string") return undefined;
+    if (record.schema !== 1 || typeof record.id !== "string" || typeof record.name !== "string")
+      return undefined;
     if (record.source !== "bifrost") return undefined;
     return {
       schema: 1,
@@ -524,7 +549,7 @@ export async function readMarker(directory: string): Promise<InstalledSkill | un
 }
 
 export async function listRoot(root: string, scope: InstallScope): Promise<InstalledSkill[]> {
-  let entries;
+  let entries: Dirent[];
   try {
     entries = await fs.readdir(root, { withFileTypes: true });
   } catch {
@@ -566,7 +591,10 @@ export function resolveInput(name: string, catalog: Catalog | undefined): Resolv
   return { id: skillId(candidates[0] ?? trimmed), candidates };
 }
 
-function findRemote(catalog: Catalog | undefined, record: InstalledSkill): SkillSummary | undefined {
+function findRemote(
+  catalog: Catalog | undefined,
+  record: InstalledSkill,
+): SkillSummary | undefined {
   return catalog?.skills.find(
     (skill) => skill.name === record.name || skill.id === record.id || skill.plugin === record.name,
   );
@@ -590,7 +618,7 @@ export function compareVersions(left: string, right: string): number | undefined
 function parseVersion(value: string): { numbers: number[]; prerelease?: string } | undefined {
   const match = /^v?(\d+(?:\.\d+)*)(?:-([0-9A-Za-z.-]+))?/.exec(value.trim());
   if (!match) return undefined;
-  const numbers = match[1]!.split(".").map((part) => Number(part));
+  const numbers = (match[1] ?? "").split(".").map((part) => Number(part));
   if (numbers.some((part) => !Number.isFinite(part))) return undefined;
   return { numbers, ...(match[2] ? { prerelease: match[2] } : {}) };
 }
@@ -603,7 +631,11 @@ async function tryCatalog(gateway: Gateway, signal?: AbortSignal): Promise<Catal
   }
 }
 
-async function downloadFirst(gateway: Gateway, candidates: string[], signal?: AbortSignal): Promise<Uint8Array> {
+async function downloadFirst(
+  gateway: Gateway,
+  candidates: string[],
+  signal?: AbortSignal,
+): Promise<Uint8Array> {
   let lastError: unknown;
   for (const candidate of candidates) {
     if (!candidate) continue;
@@ -621,7 +653,7 @@ function selectPackage(packages: SkillPackage[], entry: SkillSummary | undefined
   if (packages.length === 0) {
     throw new BifrostError("corrupt", "The skill archive does not contain a SKILL.md file.");
   }
-  if (packages.length === 1) return packages[0]!;
+  if (packages.length === 1) return packages[0] as SkillPackage;
 
   const match = packages.find(
     (pkg) =>
