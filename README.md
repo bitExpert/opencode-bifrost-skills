@@ -93,15 +93,15 @@ it when the task matches its description.
 
 ## Commands
 
-| Command | Arguments and flags | Description |
-| --- | --- | --- |
-| `/bifrost-skills` | — | Browse the catalog, pick a scope, install. Asks before replacing an existing skill and offers to install another. |
-| `/bifrost-install <skill>` | `--global` \| `--project`, `--force` | Install one skill. Scope defaults to global. |
-| `/bifrost-install-all` | `--global` \| `--project`, `--force` | Install every skill from the all-skills bundle. Falls back to the catalog if the bundle is empty. |
-| `/bifrost-list` | — | List installed Bifrost skills in both global and project scope. |
-| `/bifrost-update [<skill>\|all]` | `--global` \| `--project` | Update installed skills. Defaults to `all` and checks the global and session project scopes. |
-| `/bifrost-remove <skill>` | `--global` \| `--project` | Remove an installed skill. Scope is required when the skill exists in both. |
-| `/bifrost-config` | `baseUrl=…`, `apiKey=…`, `timeoutMs=…`, `--reset`, `--clear-api-key` | Show or change gateway settings. |
+| Command                          | Arguments and flags                                                  | Description                                                                                                       |
+| -------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `/bifrost-skills`                | —                                                                    | Browse the catalog, pick a scope, install. Asks before replacing an existing skill and offers to install another. |
+| `/bifrost-install <skill>`       | `--global` \| `--project`, `--force`                                 | Install one skill. Scope defaults to global.                                                                      |
+| `/bifrost-install-all`           | `--global` \| `--project`, `--force`                                 | Install every skill from the all-skills bundle. Falls back to the catalog if the bundle is empty.                 |
+| `/bifrost-list`                  | —                                                                    | List installed Bifrost skills in both global and project scope.                                                   |
+| `/bifrost-update [<skill>\|all]` | `--global` \| `--project`                                            | Update installed skills. Defaults to `all` and checks the global and session project scopes.                      |
+| `/bifrost-remove <skill>`        | `--global` \| `--project`                                            | Remove an installed skill. Scope is required when the skill exists in both.                                       |
+| `/bifrost-config`                | `baseUrl=…`, `apiKey=…`, `timeoutMs=…`, `--reset`, `--clear-api-key` | Show or change gateway settings.                                                                                  |
 
 ### Flag notes
 
@@ -119,10 +119,10 @@ it when the task matches its description.
 
 ## Where skills are installed
 
-| Scope | Directory |
-| --- | --- |
-| Global | `$OPENCODE_CONFIG_DIR/skills`, else `${XDG_CONFIG_HOME:-~/.config}/opencode/skills` |
-| Project | `<session directory>/.opencode/skills` |
+| Scope   | Directory                                                                           |
+| ------- | ----------------------------------------------------------------------------------- |
+| Global  | `$OPENCODE_CONFIG_DIR/skills`, else `${XDG_CONFIG_HOME:-~/.config}/opencode/skills` |
+| Project | `<session directory>/.opencode/skills`                                              |
 
 The project directory is resolved on the server from the session that ran the
 command (`session.location.directory`), not from the TUI process's working
@@ -245,43 +245,43 @@ npm run check       # both
 
 ### Package layout
 
-| Path | Purpose |
-| --- | --- |
-| `src/index.ts` | Server plugin: RPC handlers, `/bifrost-*` command registration, notices. |
-| `src/tui.tsx` | TUI plugin: interactive `/bifrost-skills` dialog and toasts. |
-| `src/rpc.ts` | Typed RPC contract and JSON schemas shared by both parts. |
-| `src/bifrost.ts` | HTTP client, catalog fallbacks, error types, URL normalisation. |
-| `src/operations.ts` | Install/install-all/update/remove/list, staging, markers, hashing. |
-| `src/settings.ts` | Settings precedence, skills directories, config summary. |
-| `src/zip.ts` | Zip decoding, path/size validation, package grouping, hashing. |
-| `src/args.ts` | Parser for slash-command arguments and option aliases. |
-| `src/format.ts` | Markdown rendering of command results. |
-| `src/types.ts` | Shared record and result types. |
-| `test/` | Bun tests with in-memory storage and a mock gateway (one test uses a real local HTTP server). |
+| Path                | Purpose                                                                                       |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| `src/index.ts`      | Server plugin: RPC handlers, `/bifrost-*` command registration, notices.                      |
+| `src/tui.tsx`       | TUI plugin: interactive `/bifrost-skills` dialog and toasts.                                  |
+| `src/rpc.ts`        | Typed RPC contract and JSON schemas shared by both parts.                                     |
+| `src/bifrost.ts`    | HTTP client, catalog fallbacks, error types, URL normalisation.                               |
+| `src/operations.ts` | Install/install-all/update/remove/list, staging, markers, hashing.                            |
+| `src/settings.ts`   | Settings precedence, skills directories, config summary.                                      |
+| `src/zip.ts`        | Zip decoding, path/size validation, package grouping, hashing.                                |
+| `src/args.ts`       | Parser for slash-command arguments and option aliases.                                        |
+| `src/format.ts`     | Markdown rendering of command results.                                                        |
+| `src/types.ts`      | Shared record and result types.                                                               |
+| `test/`             | Bun tests with in-memory storage and a mock gateway (one test uses a real local HTTP server). |
 
 ### Package exports
 
 ```jsonc
 {
   "exports": {
-    ".": "./src/index.ts",   // server plugin
+    ".": "./src/index.ts", // server plugin
     "./tui": "./src/tui.tsx", // TUI plugin
-    "./rpc": "./src/rpc.ts"   // typed RPC contract
+    "./rpc": "./src/rpc.ts" // typed RPC contract
   }
 }
 ```
 
 ## Troubleshooting
 
-| Symptom | What to check |
-| --- | --- |
-| Browser shows “Could not reach …” | Run `/bifrost-config`, confirm the gateway URL and that it is reachable from the OpenCode host. |
-| Catalog is empty but install by name works | The gateway may not serve a marketplace manifest; `/bifrost-install <name>` still uses the public download route. |
-| `401`/`403` warnings in the catalog | The API key was rejected; the plugin falls back to the public bundle. Clear or replace the key with `/bifrost-config`. |
-| “already installed … use --force” | Use `--force`, `/bifrost-update <skill>`, or remove it first. |
-| `/bifrost-list` is empty | Confirm the skill directory contains `.bifrost-skill.json` and that you are in the project that owns a project-scope install. |
-| A skill does not appear in `@` completion | Wait for the reload after install, then check the directory name equals the skill id. Global and project directories are scanned by OpenCode, not by this plugin. |
-| Commands are missing from slash completion | The plugin entry/path is wrong, or OpenCode was not restarted after the config change. |
+| Symptom                                    | What to check                                                                                                                                                     |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser shows “Could not reach …”          | Run `/bifrost-config`, confirm the gateway URL and that it is reachable from the OpenCode host.                                                                   |
+| Catalog is empty but install by name works | The gateway may not serve a marketplace manifest; `/bifrost-install <name>` still uses the public download route.                                                 |
+| `401`/`403` warnings in the catalog        | The API key was rejected; the plugin falls back to the public bundle. Clear or replace the key with `/bifrost-config`.                                            |
+| “already installed … use --force”          | Use `--force`, `/bifrost-update <skill>`, or remove it first.                                                                                                     |
+| `/bifrost-list` is empty                   | Confirm the skill directory contains `.bifrost-skill.json` and that you are in the project that owns a project-scope install.                                     |
+| A skill does not appear in `@` completion  | Wait for the reload after install, then check the directory name equals the skill id. Global and project directories are scanned by OpenCode, not by this plugin. |
+| Commands are missing from slash completion | The plugin entry/path is wrong, or OpenCode was not restarted after the config change.                                                                            |
 
 ## License
 

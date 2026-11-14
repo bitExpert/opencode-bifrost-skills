@@ -7,6 +7,7 @@ import {
   normalizeEntryName,
   parsePackages,
   parseSkillMarkdown,
+  type SkillPackage,
   skillId,
   versionFromFrontmatter,
   ZipError,
@@ -55,7 +56,7 @@ describe("parsePackages", () => {
     );
     const packages = parsePackages(files);
     expect(packages.map((pkg) => pkg.name)).toEqual(["changelog", "git-release"]);
-    const release = packages.find((pkg) => pkg.name === "git-release")!;
+    const release = packages.find((pkg) => pkg.name === "git-release") as SkillPackage;
     expect([...release.files.keys()].sort()).toEqual(["SKILL.md", "scripts/release.sh"]);
     expect(release.description).toBe("Releases");
   });
@@ -69,16 +70,18 @@ describe("parsePackages", () => {
     );
     const packages = parsePackages(files);
     expect(packages.map((pkg) => pkg.name)).toEqual(["parent"]);
-    expect([...packages[0]!.files.keys()].sort()).toEqual(["SKILL.md"]);
+    expect([...(packages[0] as { files: Map<string, Uint8Array> }).files.keys()].sort()).toEqual([
+      "SKILL.md",
+    ]);
   });
 
   test("reads a root SKILL.md", () => {
     const files = decodeZip(makeZip({ "SKILL.md": skillMarkdown("Root") }));
     const packages = parsePackages(files);
     expect(packages).toHaveLength(1);
-    expect(packages[0]!.root).toBe("");
-    expect(packages[0]!.name).toBe("Example Skill");
-    expect(packages[0]!.suggestedId).toBe("example-skill");
+    expect(packages[0]?.root).toBe("");
+    expect(packages[0]?.name).toBe("Example Skill");
+    expect(packages[0]?.suggestedId).toBe("example-skill");
   });
 
   test("returns nothing for an archive without SKILL.md", () => {
@@ -88,7 +91,9 @@ describe("parsePackages", () => {
 
 describe("parseSkillMarkdown", () => {
   test("reads YAML frontmatter", () => {
-    const parsed = parseSkillMarkdown("---\nname: Demo\ndescription: Works\ntags:\n  - a\n---\nBody\n");
+    const parsed = parseSkillMarkdown(
+      "---\nname: Demo\ndescription: Works\ntags:\n  - a\n---\nBody\n",
+    );
     expect(parsed.frontmatter.name).toBe("Demo");
     expect(parsed.frontmatter.tags).toEqual(["a"]);
     expect(parsed.body).toBe("Body\n");

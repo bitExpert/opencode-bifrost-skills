@@ -4,10 +4,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import type { Plugin } from "@opencode/plugin";
 import plugin from "../src/index.js";
-import { MARKER_FILE, globalSkillsDirectory } from "../src/settings.js";
+import { globalSkillsDirectory, MARKER_FILE } from "../src/settings.js";
 import { makeZip, memoryStorage, skillMarkdown } from "./helpers.js";
 
-type CommandInvocation = Parameters<NonNullable<Parameters<typeof plugin.setup> extends never ? never : any>>[0];
 type Context = Plugin.Context;
 
 interface Harness {
@@ -29,13 +28,15 @@ const state = {
   bodies: new Map<string, string>(),
 };
 
-function body(name: string, description: string, version: string): string {
+function body(_name: string, description: string, version: string): string {
   return skillMarkdown(description, `metadata:\n  version: ${version}\n`);
 }
 
 function allZip(): Uint8Array {
   return makeZip(
-    Object.fromEntries([...state.bodies.entries()].map(([name, markdown]) => [`${name}/SKILL.md`, markdown])),
+    Object.fromEntries(
+      [...state.bodies.entries()].map(([name, markdown]) => [`${name}/SKILL.md`, markdown]),
+    ),
   );
 }
 
@@ -58,9 +59,10 @@ function startGateway(): string {
       }
       const match = /^\/api\/skills\/serve\/([^/]+)\/download\.zip$/.exec(url.pathname);
       if (match) {
-        const markdown = state.bodies.get(decodeURIComponent(match[1]!));
+        const name = decodeURIComponent(match[1] as string);
+        const markdown = state.bodies.get(name);
         if (!markdown) return new Response("missing", { status: 404 });
-        return new Response(makeZip({ [`${decodeURIComponent(match[1]!)}/SKILL.md`]: markdown }));
+        return new Response(makeZip({ [`${name}/SKILL.md`]: markdown }));
       }
       return new Response("missing", { status: 404 });
     },
@@ -70,7 +72,10 @@ function startGateway(): string {
 
 async function setup(): Promise<Harness> {
   const storage = memoryStorage();
-  const commands = new Map<string, { name: string; execute: (invocation: unknown) => Promise<void> }>();
+  const commands = new Map<
+    string,
+    { name: string; execute: (invocation: unknown) => Promise<void> }
+  >();
   const rpc = new Map<string, (input: unknown, context: unknown) => Promise<unknown>>();
   const notices: Harness["notices"] = [];
   const synthetic: Harness["synthetic"] = [];
@@ -85,11 +90,17 @@ async function setup(): Promise<Harness> {
       },
     },
     rpc: {
-      register: async (_definition: unknown, handlers: Record<string, (input: unknown, context: unknown) => Promise<unknown>>) => {
+      register: async (
+        _definition: unknown,
+        handlers: Record<string, (input: unknown, context: unknown) => Promise<unknown>>,
+      ) => {
         for (const [name, handler] of Object.entries(handlers)) rpc.set(name, handler);
         return {
           events: {
-            emit: async (_name: string, payload: { kind: string; message: string; title: string }) => {
+            emit: async (
+              _name: string,
+              payload: { kind: string; message: string; title: string },
+            ) => {
               notices.push(payload);
             },
           },
@@ -101,7 +112,10 @@ async function setup(): Promise<Harness> {
       transform: async (callback: (editor: { add: (definition: unknown) => void }) => void) => {
         callback({
           add: (definition) => {
-            const command = definition as { name: string; execute: (invocation: unknown) => Promise<void> };
+            const command = definition as {
+              name: string;
+              execute: (invocation: unknown) => Promise<void>;
+            };
             commands.set(command.name, command);
           },
         });
@@ -110,7 +124,12 @@ async function setup(): Promise<Harness> {
     },
     session: {
       get: async () => ({ location: { directory: path.join(root, "project") } }),
-      synthetic: async (input: { sessionID: string; text: string; description?: string; resume?: boolean }) => {
+      synthetic: async (input: {
+        sessionID: string;
+        text: string;
+        description?: string;
+        resume?: boolean;
+      }) => {
         synthetic.push(input);
       },
     },
@@ -187,8 +206,13 @@ describe("server plugin", () => {
     await run(harness, "bifrost-install", "git-release");
     const directory = path.join(globalSkillsDirectory(), "git-release");
     expect(await readFile(path.join(directory, "SKILL.md"), "utf8")).toContain("Release helper");
-    expect(JSON.parse(await readFile(path.join(directory, MARKER_FILE), "utf8")).version).toBe("1.0.0");
-    expect(harness.notices.at(-1)).toMatchObject({ kind: "success", message: "Installed git-release (global)" });
+    expect(JSON.parse(await readFile(path.join(directory, MARKER_FILE), "utf8")).version).toBe(
+      "1.0.0",
+    );
+    expect(harness.notices.at(-1)).toMatchObject({
+      kind: "success",
+      message: "Installed git-release (global)",
+    });
     expect(harness.synthetic.at(-1)?.text).toContain("**Installed git-release** v1.0.0 (global)");
     expect(harness.reloads).toBe(1);
   });
@@ -246,20 +270,40 @@ describe("server plugin", () => {
     const harness = await setup();
     await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
 
-    const catalog = (await harness.rpc.get("catalog")!({}, rpcContext())) as {
+    const catalog = (await (
+      harness.rpc.get("catalog") as (input: unknown, ctx: unknown) => Promise<unknown>
+    )({}, rpcContext())) as {
       source: string;
-      skills: Array<{ id: string; name: string; description?: string; plugin?: string; version?: string }>;
+      skills: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        plugin?: string;
+        version?: string;
+      }>;
     };
     expect(catalog.source).toBe("marketplace");
-    expect(catalog.skills).toEqual([{ name: "git-release", id: "git-release", plugin: "bifrost-git-release", description: "git-release helper", version: "1.0.0" }]);
+    expect(catalog.skills).toEqual([
+      {
+        name: "git-release",
+        id: "git-release",
+        plugin: "bifrost-git-release",
+        description: "git-release helper",
+        version: "1.0.0",
+      },
+    ]);
 
-    const installed = await harness.rpc.get("install")!(
+    const installed = await (
+      harness.rpc.get("install") as (input: unknown, ctx: unknown) => Promise<unknown>
+    )(
       { name: "git-release", scope: "global", directory: path.join(root, "project") },
       rpcContext(),
     );
     expect(installed).toMatchObject({ id: "git-release", scope: "global", action: "installed" });
 
-    const listed = (await harness.rpc.get("list")!({ directory: path.join(root, "project") }, rpcContext())) as {
+    const listed = (await (
+      harness.rpc.get("list") as (input: unknown, ctx: unknown) => Promise<unknown>
+    )({ directory: path.join(root, "project") }, rpcContext())) as {
       skills: Array<{ id: string }>;
     };
     expect(listed.skills.map((skill) => skill.id)).toEqual(["git-release"]);
@@ -271,7 +315,10 @@ describe("server plugin", () => {
     await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
 
     await expect(
-      harness.rpc.get("install")!({ name: "missing", scope: "global" }, rpcContext()),
+      (harness.rpc.get("install") as (input: unknown, ctx: unknown) => Promise<unknown>)(
+        { name: "missing", scope: "global" },
+        rpcContext(),
+      ),
     ).resolves.toMatchObject({ type: "failed" });
   });
 });

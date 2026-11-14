@@ -12,7 +12,7 @@
 
 import { createHash } from "node:crypto";
 import path from "node:path";
-import { unzipSync, type UnzipFileInfo } from "fflate";
+import { type UnzipFileInfo, unzipSync } from "fflate";
 import { parse as parseYaml } from "yaml";
 
 export const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
@@ -98,12 +98,18 @@ export function decodeZip(data: Uint8Array): Map<string, Uint8Array> {
       filter: (file: UnzipFileInfo) => {
         entries += 1;
         if (entries > MAX_ENTRIES) {
-          throw new ZipError("too-many-files", `Archive contains more than ${MAX_ENTRIES} entries.`);
+          throw new ZipError(
+            "too-many-files",
+            `Archive contains more than ${MAX_ENTRIES} entries.`,
+          );
         }
         // Directory entries carry a trailing slash and zero bytes.
         if (file.name.replace(/\\/g, "/").endsWith("/")) return true;
         if (file.originalSize > MAX_FILE_BYTES) {
-          throw new ZipError("too-large", `Archive entry '${file.name}' exceeds the 8 MiB file limit.`);
+          throw new ZipError(
+            "too-large",
+            `Archive entry '${file.name}' exceeds the 8 MiB file limit.`,
+          );
         }
         total += file.originalSize;
         if (total > MAX_TOTAL_BYTES) {
@@ -256,7 +262,7 @@ export function skillId(name: string): string {
 export function hashFiles(files: Map<string, Uint8Array>): string {
   const hash = createHash("sha256");
   for (const name of [...files.keys()].sort()) {
-    const bytes = files.get(name)!;
+    const bytes = files.get(name) as Uint8Array;
     hash.update(name);
     hash.update("\0");
     hash.update(String(bytes.byteLength));

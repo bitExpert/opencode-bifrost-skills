@@ -1,7 +1,7 @@
-import { zipSync, strToU8 } from "fflate";
+import type { Plugin } from "@opencode/plugin";
+import { strToU8, zipSync } from "fflate";
 import { BifrostError, type Gateway } from "../src/bifrost.js";
 import type { Catalog, SkillSummary } from "../src/types.js";
-import type { Plugin } from "@opencode/plugin";
 
 export type StorageDomain = Plugin.Context["storage"];
 
@@ -29,7 +29,9 @@ export function memoryStorage(initial: Record<string, unknown> = {}): StorageDom
 }
 
 export function makeZip(files: Record<string, string>): Uint8Array {
-  return zipSync(Object.fromEntries(Object.entries(files).map(([name, body]) => [name, strToU8(body)])));
+  return zipSync(
+    Object.fromEntries(Object.entries(files).map(([name, body]) => [name, strToU8(body)])),
+  );
 }
 
 export function skillMarkdown(description: string, extra = ""): string {
