@@ -1,0 +1,44 @@
+{
+  "name": "@bitexpert/opencode-bifrost-skills",
+  "version": "0.1.0",
+  "description": "Install Agent Skills from a Bifrost gateway skills repository into OpenCode 2",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tui": "./src/tui.tsx",
+    "./rpc": "./src/rpc.ts"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git@github.com:bitExpert/opencode-bifrost-skills.git" },
+  "homepage": "https://gitlab.com/bitExpert/opencode-bifrost-skills",
+  "bugs": { "url": "https://gitlab.com/bitExpert/opencode-bifrost-skills-/issues" },
+  "engines": { "bun": ">=1.2" },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "bifrost",
+    "skills",
+    "agent-skills"
+  ],
+  "publishConfig": { "access": "public" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "check": "npm run typecheck && npm run test"
+  },
+  "dependencies": {
+    "@opencode/plugin": "2.2.5",
+    "fflate": "^0.8.2",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
