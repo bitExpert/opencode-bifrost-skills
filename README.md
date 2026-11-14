@@ -1,5 +1,6 @@
 # opencode-bifrost-skills
 
+[![Build Status](https://github.com/bitExpert/opencode-bifrost-skills/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/bitExpert/opencode-bifrost-skills/actions)
 [![Mastodon Follow](https://img.shields.io/mastodon/follow/109408681246972700?domain=https://rheinneckar.social)](https://rheinneckar.social/@bitexpert)
 
 Discover and install [Agent Skills](https://opencode.ai/docs/skills/) from a
