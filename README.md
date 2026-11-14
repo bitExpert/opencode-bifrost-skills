@@ -1,5 +1,7 @@
 # opencode-bifrost-skills
 
+[![Mastodon Follow](https://img.shields.io/mastodon/follow/109408681246972700?domain=https://rheinneckar.social)](https://rheinneckar.social/@bitexpert)
+
 Discover and install [Agent Skills](https://opencode.ai/docs/skills/) from a
 [Bifrost](https://docs.getbifrost.ai/features/skills-repository) gateway's Skills
 Repository into OpenCode 2 — globally or per project.
