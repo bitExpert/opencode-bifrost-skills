@@ -15,7 +15,7 @@
 export type InstallScope = "global" | "project";
 
 /** How the catalog was discovered. */
-export type CatalogSource = "marketplace" | "api" | "zip";
+export type CatalogSource = "marketplace" | "zip";
 
 export interface SkillSummary {
   /** Raw Bifrost skill name. Used for `/api/skills/serve/{name}/download.zip`. */
@@ -99,23 +99,19 @@ export interface RemoveResult {
 /** Settings as persisted in plugin storage. */
 export interface StoredSettings {
   baseUrl?: string;
-  apiKey?: string;
   timeoutMs?: number;
 }
 
 /** Settings after applying storage -> options -> environment precedence. */
 export interface ResolvedSettings {
   baseUrl: string;
-  apiKey?: string;
   timeoutMs: number;
   /** Where the base URL came from, for `/bifrost-config` output. */
   baseUrlSource: "command" | "storage" | "options" | "environment" | "default";
-  apiKeySource: "command" | "storage" | "options" | "environment" | "none";
 }
 
 export interface ConfigPatch {
   baseUrl?: string;
-  apiKey?: string | null;
   timeoutMs?: number;
   reset?: boolean;
 }
@@ -123,9 +119,6 @@ export interface ConfigPatch {
 export interface ConfigSummary {
   baseUrl: string;
   baseUrlSource: ResolvedSettings["baseUrlSource"];
-  hasApiKey: boolean;
-  apiKeySource: ResolvedSettings["apiKeySource"];
-  apiKeyHint?: string;
   timeoutMs: number;
   globalSkillsDirectory: string;
 }

@@ -22,7 +22,7 @@ anything; they perform the install and post the result into the session.
 - Global scope (`<config dir>/skills`) and project scope
   (`<project>/.opencode/skills`).
 - Catalog fallbacks that keep working when the gateway's marketplace manifest
-  or management API is unavailable.
+  is unavailable.
 - Refuses to overwrite by default; updates compare versions and content hashes.
 - Validates every archive (path traversal, entry count, per-file and total
   size) and installs through an atomic staging directory.
@@ -70,7 +70,7 @@ To pass options, use the object form:
 }
 ```
 
-Supported options: `baseUrl`, `apiKey`, `timeoutMs`.
+Supported options: `baseUrl`, `timeoutMs`.
 
 Restart OpenCode (or reload plugins) after changing the config. The commands
 then appear in slash completion under `/bifrost-…`.
@@ -79,7 +79,6 @@ then appear in slash completion under `/bifrost-…`.
 
 ```text
 /bifrost-config baseUrl=https://bifrost.example.com
-/bifrost-config apiKey=<your-key>
 /bifrost-skills
 ```
 
@@ -102,7 +101,7 @@ it when the task matches its description.
 | `/bifrost-list`                  | —                                                                    | List installed Bifrost skills in both global and project scope.                                                   |
 | `/bifrost-update [<skill>\|all]` | `--global` \| `--project`                                            | Update installed skills. Defaults to `all` and checks the global and session project scopes.                      |
 | `/bifrost-remove <skill>`        | `--global` \| `--project`                                            | Remove an installed skill. Scope is required when the skill exists in both.                                       |
-| `/bifrost-config`                | `baseUrl=…`, `apiKey=…`, `timeoutMs=…`, `--reset`, `--clear-api-key` | Show or change gateway settings.                                                                                  |
+| `/bifrost-config`                | `baseUrl=…`, `timeoutMs=…`, `--reset` | Show or change gateway settings.                                                                                  |
 
 ### Flag notes
 
@@ -115,8 +114,7 @@ it when the task matches its description.
 - Skill names may be given as the raw Bifrost name (`git-release`), the
   marketplace plugin name (`bifrost-git-release`) or the installed skill id.
 - Option spellings are flexible: `baseUrl=…` / `--base-url …` /
-  `--url …`, `apiKey=…` / `--api-key …` / `--token …`,
-  `timeoutMs=…` / `--timeout-ms …`.
+  `--url …`, `timeoutMs=…` / `--timeout-ms …`.
 
 ## Where skills are installed
 
@@ -137,17 +135,13 @@ The commands only populate these directories — loading is OpenCode's job.
 
 ## How the catalog is discovered
 
-The client tries three sources in order and uses the first non-empty result:
+The client tries two sources in order and uses the first non-empty result:
 
 1. **Marketplace manifest** —
    `GET /api/skills/serve/claude-code/.claude-plugin/marketplace.json`.
    Provides names, descriptions and versions. The gateway only serves it when
    `client.skills_external_client_url` is configured and `git` is available.
-2. **Management API** — `GET /api/skills?limit=100&offset=…`, paginated.
-   Provides names, descriptions and version fields and usually needs an API
-   key. If the key is rejected, the plugin adds a warning and continues to the
-   public bundle instead of failing.
-3. **All-skills bundle** — `GET /api/skills/serve/all/download.zip`, public.
+2. **All-skills bundle** — `GET /api/skills/serve/all/download.zip`, public.
    Names, descriptions and versions are read from each `SKILL.md` frontmatter.
 
 Installs do not depend on the catalog: they always use
@@ -198,7 +192,7 @@ Settings are resolved with this precedence (highest first):
 1. **Command override** — passed by the TUI/RPC for a single call.
 2. **Plugin storage** — written by `/bifrost-config`.
 3. **Plugin options** — the `options` object in the OpenCode config.
-4. **Environment** — `BIFROST_URL`, `BIFROST_API_KEY`, `BIFROST_TIMEOUT_MS`.
+4. **Environment** — `BIFROST_URL`, `BIFROST_TIMEOUT_MS`.
 5. **Default** — `http://localhost:8080`, 20 000 ms.
 
 `/bifrost-config` shows the effective values and where each one came from.
@@ -206,17 +200,12 @@ Settings are resolved with this precedence (highest first):
 ```text
 /bifrost-config
 /bifrost-config baseUrl=https://bifrost.example.com timeoutMs=15000
-/bifrost-config apiKey=<key>
-/bifrost-config --clear-api-key
 /bifrost-config --reset
 ```
 
 The gateway URL is normalized: a missing scheme becomes `http://`, trailing
 slashes are removed, a trailing `/api` is stripped, and URLs containing
-credentials are rejected (use `apiKey` instead). API keys are masked in all
-output and are stored in plugin storage, not written back to the OpenCode
-config. `--reset` removes the stored settings so the options/environment
-defaults apply again.
+credentials are rejected (use `baseUrl` instead).
 
 ## Security
 
@@ -239,7 +228,7 @@ defaults apply again.
 
 ```bash
 bun install
-bun test            # 79 tests, Bun's built-in runner
+bun test            # 82 tests, Bun's built-in runner
 npm run typecheck   # tsc --noEmit
 npm run check       # both
 ```
@@ -278,7 +267,6 @@ npm run check       # both
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Browser shows “Could not reach …”          | Run `/bifrost-config`, confirm the gateway URL and that it is reachable from the OpenCode host.                                                                   |
 | Catalog is empty but install by name works | The gateway may not serve a marketplace manifest; `/bifrost-install <name>` still uses the public download route.                                                 |
-| `401`/`403` warnings in the catalog        | The API key was rejected; the plugin falls back to the public bundle. Clear or replace the key with `/bifrost-config`.                                            |
 | “already installed … use --force”          | Use `--force`, `/bifrost-update <skill>`, or remove it first.                                                                                                     |
 | `/bifrost-list` is empty                   | Confirm the skill directory contains `.bifrost-skill.json` and that you are in the project that owns a project-scope install.                                     |
 | A skill does not appear in `@` completion  | Wait for the reload after install, then check the directory name equals the skill id. Global and project directories are scanned by OpenCode, not by this plugin. |

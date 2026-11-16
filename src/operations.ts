@@ -100,7 +100,6 @@ export class Operations {
       ((settings) =>
         new BifrostClient({
           baseUrl: settings.baseUrl,
-          apiKey: settings.apiKey,
           timeoutMs: settings.timeoutMs,
         }));
     this.settings = new SettingsStore({

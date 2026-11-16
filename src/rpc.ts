@@ -94,22 +94,16 @@ const configSummarySchema = object(
       type: "string",
       enum: ["command", "storage", "options", "environment", "default"],
     },
-    hasApiKey: boolean(),
-    apiKeySource: {
-      type: "string",
-      enum: ["command", "storage", "options", "environment", "none"],
-    },
-    apiKeyHint: string(),
     timeoutMs: number(),
     globalSkillsDirectory: string(),
   },
-  ["baseUrl", "baseUrlSource", "hasApiKey", "apiKeySource", "timeoutMs", "globalSkillsDirectory"],
+  ["baseUrl", "baseUrlSource", "timeoutMs", "globalSkillsDirectory"],
 );
 
 const catalogSchema = object(
   {
     baseUrl: string(),
-    source: { type: "string", enum: ["marketplace", "api", "zip"] },
+    source: { type: "string", enum: ["marketplace", "zip"] },
     fetchedAt: string(),
     skills: array(skillSummarySchema),
     warnings: array(string()),
@@ -138,7 +132,6 @@ export const BifrostRpc = Rpc.define({
         directory: string(),
         force: boolean(),
         baseUrl: string(),
-        apiKey: string(),
       }),
       output: installResultSchema,
       errors: failedErrors,
@@ -149,7 +142,6 @@ export const BifrostRpc = Rpc.define({
         directory: string(),
         force: boolean(),
         baseUrl: string(),
-        apiKey: string(),
       }),
       output: object(
         {
@@ -174,7 +166,6 @@ export const BifrostRpc = Rpc.define({
         scope: scopeSchema,
         directory: string(),
         baseUrl: string(),
-        apiKey: string(),
       }),
       output: object(
         {
@@ -216,8 +207,6 @@ export const BifrostRpc = Rpc.define({
     config: {
       input: object({
         baseUrl: string(),
-        apiKey: string(),
-        clearApiKey: boolean(),
         timeoutMs: number(),
         reset: boolean(),
       }),

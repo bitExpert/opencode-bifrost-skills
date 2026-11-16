@@ -199,8 +199,8 @@ describe("server plugin", () => {
     const baseUrl = startGateway();
     const harness = await setup();
 
-    await run(harness, "bifrost-config", `baseUrl=${baseUrl} apiKey=secret`);
-    expect(harness.storage.values.get("settings")).toMatchObject({ baseUrl, apiKey: "secret" });
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
+    expect(harness.storage.values.get("settings")).toMatchObject({ baseUrl });
     expect(harness.notices.at(-1)?.message).toBe("Bifrost settings saved.");
 
     await run(harness, "bifrost-install", "git-release");
@@ -215,6 +215,15 @@ describe("server plugin", () => {
     });
     expect(harness.synthetic.at(-1)?.text).toContain("**Installed git-release** v1.0.0 (global)");
     expect(harness.reloads).toBe(1);
+  });
+
+  test("rejects apiKey in /bifrost-config", async () => {
+    const baseUrl = startGateway();
+    const harness = await setup();
+
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl} apiKey=secret`);
+    expect(harness.notices.at(-1)?.kind).toBe("error");
+    expect(harness.notices.at(-1)?.message).toMatch(/API keys are no longer supported/i);
   });
 
   test("lists, updates, and removes", async () => {

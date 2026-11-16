@@ -43,13 +43,13 @@ describe("parseArgs", () => {
   });
 
   test("parses kebab and camel case assignments", () => {
-    const kebab = parseArgs("api-key=secret timeout=1000");
-    expect(readString(kebab, "apiKey")).toBe("secret");
+    const kebab = parseArgs("base-url=secret timeout=1000");
+    expect(readString(kebab, "baseUrl")).toBe("secret");
     expect(readTimeout(kebab)).toBe(1000);
 
-    const camel = parseArgs("apiKey=secret2 baseUrl=https://x.test");
-    expect(readString(camel, "apiKey")).toBe("secret2");
-    expect(readString(camel, "baseUrl")).toBe("https://x.test");
+    const camel = parseArgs("baseUrl=secret2 timeout=2000");
+    expect(readString(camel, "baseUrl")).toBe("secret2");
+    expect(readTimeout(camel)).toBe(2000);
   });
 
   test("stops option parsing after --", () => {

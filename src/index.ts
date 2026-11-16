@@ -43,7 +43,6 @@ interface CommandOutcome {
 interface CatalogInput {
   directory?: string;
   baseUrl?: string;
-  apiKey?: string;
 }
 
 interface InstallInput {
@@ -52,7 +51,6 @@ interface InstallInput {
   directory?: string;
   force?: boolean;
   baseUrl?: string;
-  apiKey?: string;
 }
 
 interface InstallAllInput {
@@ -60,7 +58,6 @@ interface InstallAllInput {
   directory?: string;
   force?: boolean;
   baseUrl?: string;
-  apiKey?: string;
 }
 
 interface ListInput {
@@ -72,7 +69,6 @@ interface UpdateInput {
   scope?: string;
   directory?: string;
   baseUrl?: string;
-  apiKey?: string;
 }
 
 interface RemoveInput {
@@ -83,8 +79,6 @@ interface RemoveInput {
 
 interface ConfigInput {
   baseUrl?: string;
-  apiKey?: string;
-  clearApiKey?: boolean;
   timeoutMs?: number;
   reset?: boolean;
 }
@@ -189,9 +183,6 @@ export default Plugin.define({
           if (input.reset === true) patch.reset = true;
           if (typeof input.baseUrl === "string" && input.baseUrl.trim() !== "")
             patch.baseUrl = input.baseUrl;
-          if (input.clearApiKey === true) patch.apiKey = null;
-          else if (typeof input.apiKey === "string" && input.apiKey.trim() !== "")
-            patch.apiKey = input.apiKey;
           if (typeof input.timeoutMs === "number") patch.timeoutMs = input.timeoutMs;
           return hasPatch(patch) ? await operations.configure(patch) : await operations.summary();
         } catch (error) {
@@ -343,19 +334,23 @@ export default Plugin.define({
 
       editor.add({
         name: "bifrost-config",
-        description: "Show or change the Bifrost gateway URL and API key",
+        description: "Show or change the Bifrost gateway URL and timeout",
         execute: async (invocation) => {
           const outcome = await runCommand(async () => {
             const args = parseArgs(invocation.prompt.text);
+            // Tombstone: reject apiKey-related options
+            const apiKey = readString(args, "apiKey");
+            const clearApiKey = readBoolean(args, "clearApiKey");
+            if (apiKey || clearApiKey) {
+              throw new BifrostError(
+                "invalid",
+                "API keys are no longer supported: Bifrost skill routes are public. Remove `apiKey` from your plugin options and unset `BIFROST_API_KEY`.",
+              );
+            }
             const patch: ConfigPatch = {};
             if (readBoolean(args, "reset")) patch.reset = true;
             const baseUrl = readString(args, "baseUrl");
             if (baseUrl) patch.baseUrl = baseUrl;
-            if (readBoolean(args, "clearApiKey")) patch.apiKey = null;
-            else {
-              const apiKey = readString(args, "apiKey");
-              if (apiKey) patch.apiKey = apiKey;
-            }
             const timeoutMs = readTimeout(args);
             if (timeoutMs) patch.timeoutMs = timeoutMs;
 
@@ -420,11 +415,10 @@ function scopeOf(value: unknown): InstallScope {
   return value === "project" ? "project" : "global";
 }
 
-function overridesOf(input: { baseUrl?: unknown; apiKey?: unknown }): ConfigPatch {
+function overridesOf(input: { baseUrl?: unknown }): ConfigPatch {
   const patch: ConfigPatch = {};
   if (typeof input.baseUrl === "string" && input.baseUrl.trim() !== "")
     patch.baseUrl = input.baseUrl;
-  if (typeof input.apiKey === "string" && input.apiKey.trim() !== "") patch.apiKey = input.apiKey;
   return patch;
 }
 

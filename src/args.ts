@@ -23,15 +23,8 @@ const ALIASES: Record<string, string> = {
   url: "baseUrl",
   "base-url": "baseUrl",
   baseurl: "baseUrl",
-  "api-key": "apiKey",
-  apikey: "apiKey",
-  key: "apiKey",
-  token: "apiKey",
-  "timeout-ms": "timeoutMs",
   timeout: "timeoutMs",
-  "clear-api-key": "clearApiKey",
-  "clear-key": "clearApiKey",
-  "no-api-key": "clearApiKey",
+  "timeout-ms": "timeoutMs",
 };
 
 /** Options that never take a value; the following token is positional. */
@@ -41,7 +34,6 @@ const BOOLEAN_OPTIONS = new Set([
   "force",
   "verbose",
   "reset",
-  "clearApiKey",
   "help",
   "all",
 ]);

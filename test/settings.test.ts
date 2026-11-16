@@ -100,11 +100,34 @@ describe("SettingsStore precedence", () => {
     expect((await store(memoryStorage()).resolve()).baseUrl).toBe("http://localhost:8080");
   });
 
-  test("clearing an API key in storage shadows the environment", async () => {
-    const storage = memoryStorage({ settings: { apiKey: "" } });
-    const resolved = await store(storage, {}, { BIFROST_API_KEY: "env-key" }).resolve();
-    expect(resolved.apiKey).toBeUndefined();
-    expect(resolved.apiKeySource).toBe("none");
+  test("clears storage and resets settings", async () => {
+    const storage = memoryStorage({ settings: { baseUrl: "https://one.test/" } });
+    const settings = store(storage);
+
+    const summary = await settings
+      .update({ baseUrl: "https://one.test/", timeoutMs: 1234.4 })
+      .then(() => settings.summary());
+    expect(summary.baseUrl).toBe("https://one.test");
+    expect(summary.timeoutMs).toBe(1234);
+
+    await settings.update({ reset: true });
+    const reset = await settings.summary();
+    expect(reset.baseUrl).toBe("http://localhost:8080");
+  });
+
+  test("scrubs a legacy stored API key", async () => {
+    const storage = memoryStorage({ settings: { baseUrl: "https://one.test/", apiKey: "x" } });
+    const settings = store(storage);
+    const resolved = await settings.resolve();
+    // ResolvedSettings no longer has apiKey - the legacy key is scrubbed on read
+    expect(resolved).not.toHaveProperty("apiKey");
+    expect(resolved.baseUrl).toBe("https://one.test");
+  });
+
+  test("rejects an invalid base URL", async () => {
+    await expect(store(memoryStorage()).update({ baseUrl: "ftp://nope" })).rejects.toThrow(
+      BifrostError,
+    );
   });
 
   test("normalizes the base URL", async () => {
@@ -114,29 +137,5 @@ describe("SettingsStore precedence", () => {
       { BIFROST_URL: "bifrost.example.com/" },
     ).resolve();
     expect(resolved.baseUrl).toBe("http://bifrost.example.com");
-  });
-
-  test("persists and resets settings", async () => {
-    const storage = memoryStorage();
-    const settings = store(storage);
-
-    const summary = await settings
-      .update({ baseUrl: "https://one.test/", apiKey: "secret-key", timeoutMs: 1234.4 })
-      .then(() => settings.summary());
-    expect(summary.baseUrl).toBe("https://one.test");
-    expect(summary.hasApiKey).toBe(true);
-    expect(summary.timeoutMs).toBe(1234);
-    expect(summary.apiKeyHint).toBe("secr…-key");
-
-    await settings.update({ reset: true });
-    const reset = await settings.summary();
-    expect(reset.baseUrl).toBe("http://localhost:8080");
-    expect(reset.hasApiKey).toBe(false);
-  });
-
-  test("rejects an invalid base URL", async () => {
-    await expect(store(memoryStorage()).update({ baseUrl: "ftp://nope" })).rejects.toThrow(
-      BifrostError,
-    );
   });
 });

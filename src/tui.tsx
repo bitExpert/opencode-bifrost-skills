@@ -297,7 +297,6 @@ function currentDirectory(context: Context): string {
 
 function sourceLabel(source: string): string {
   if (source === "marketplace") return "marketplace catalog";
-  if (source === "api") return "skills API";
   return "all-skills bundle";
 }
 
