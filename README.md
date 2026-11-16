@@ -93,14 +93,14 @@ it when the task matches its description.
 
 ## Commands
 
-| Command                          | Arguments and flags                                                  | Description                                                                                                       |
-| -------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `/bifrost-skills`                | —                                                                    | Browse the catalog, pick a scope, install. Asks before replacing an existing skill and offers to install another. |
-| `/bifrost-install <skill>`       | `--global` \| `--project`, `--force`                                 | Install one skill. Scope defaults to global.                                                                      |
-| `/bifrost-install-all`           | `--global` \| `--project`, `--force`                                 | Install every skill from the all-skills bundle. Falls back to the catalog if the bundle is empty.                 |
-| `/bifrost-list`                  | —                                                                    | List installed Bifrost skills in both global and project scope.                                                   |
-| `/bifrost-update [<skill>\|all]` | `--global` \| `--project`                                            | Update installed skills. Defaults to `all` and checks the global and session project scopes.                      |
-| `/bifrost-remove <skill>`        | `--global` \| `--project`                                            | Remove an installed skill. Scope is required when the skill exists in both.                                       |
+| Command                          | Arguments and flags                   | Description                                                                                                       |
+| -------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `/bifrost-skills`                | —                                     | Browse the catalog, pick a scope, install. Asks before replacing an existing skill and offers to install another. |
+| `/bifrost-install <skill>`       | `--global` \| `--project`, `--force`  | Install one skill. Scope defaults to global.                                                                      |
+| `/bifrost-install-all`           | `--global` \| `--project`, `--force`  | Install every skill from the all-skills bundle. Falls back to the catalog if the bundle is empty.                 |
+| `/bifrost-list`                  | —                                     | List installed Bifrost skills in both global and project scope.                                                   |
+| `/bifrost-update [<skill>\|all]` | `--global` \| `--project`             | Update installed skills. Defaults to `all` and checks the global and session project scopes.                      |
+| `/bifrost-remove <skill>`        | `--global` \| `--project`             | Remove an installed skill. Scope is required when the skill exists in both.                                       |
 | `/bifrost-config`                | `baseUrl=…`, `timeoutMs=…`, `--reset` | Show or change gateway settings.                                                                                  |
 
 ### Flag notes

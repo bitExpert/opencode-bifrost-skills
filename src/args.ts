@@ -28,15 +28,7 @@ const ALIASES: Record<string, string> = {
 };
 
 /** Options that never take a value; the following token is positional. */
-const BOOLEAN_OPTIONS = new Set([
-  "project",
-  "global",
-  "force",
-  "verbose",
-  "reset",
-  "help",
-  "all",
-]);
+const BOOLEAN_OPTIONS = new Set(["project", "global", "force", "verbose", "reset", "help", "all"]);
 
 export function canonicalOption(name: string): string {
   const normalized = name.replace(/^-+/, "");

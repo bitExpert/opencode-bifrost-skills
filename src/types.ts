@@ -15,6 +15,10 @@
 export type InstallScope = "global" | "project";
 
 /** How the catalog was discovered. */
+/**
+ * The source used to build the catalog. The client first tries the marketplace manifest;
+ * if that fails or is empty it falls back to the public all‑skills bundle (`zip`).
+ */
 export type CatalogSource = "marketplace" | "zip";
 
 export interface SkillSummary {
@@ -28,13 +32,19 @@ export interface SkillSummary {
   plugin?: string;
 }
 
+/**
+ * A warning emitted while building the catalog. At the moment this is just a string,
+ * but a dedicated type makes it easier to evolve to a richer structure later.
+ */
+export type CatalogWarning = string;
+
 export interface Catalog {
   baseUrl: string;
   source: CatalogSource;
   fetchedAt: string;
   skills: SkillSummary[];
   /** Non-fatal problems encountered while building the catalog. */
-  warnings: string[];
+  warnings: CatalogWarning[];
 }
 
 /** Persisted next to an installed skill as `.bifrost-skill.json`. */

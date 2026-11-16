@@ -60,7 +60,9 @@ describe("BifrostClient.catalog", () => {
     const catalog = await new BifrostClient({ baseUrl }).catalog();
     expect(catalog.source).toBe("zip");
     expect(catalog.skills.map((skill) => skill.name)).toEqual(["changelog", "git-release"]);
-    expect(catalog.warnings.some((warning) => warning.includes("not available (HTTP 404)"))).toBe(true);
+    expect(catalog.warnings.some((warning) => warning.includes("not available (HTTP 404)"))).toBe(
+      true,
+    );
   });
 
   test("prefers the marketplace manifest and strips the plugin prefix", async () => {
@@ -89,15 +91,16 @@ describe("BifrostClient.catalog", () => {
 
     const client = new BifrostClient({ baseUrl });
     const warnings: string[] = [];
-    const marketplace = await (client as any).marketplaceCatalog(undefined, warnings);
-    console.log("Paths:", paths);
-    console.log("Statuses:", statuses);
-    console.log("Warnings:", warnings);
-    console.log("Marketplace result:", marketplace);
-    console.log("Source:", client.catalog().then((c) => c.source));
-    
+    const marketplace = await (
+      client as unknown as {
+        marketplaceCatalog: (signal: unknown, warnings: string[]) => Promise<unknown>;
+      }
+    ).marketplaceCatalog(undefined, warnings);
+    expect(marketplace).toBeDefined();
+    expect(Array.isArray(marketplace)).toBe(true);
+    expect((marketplace as unknown[]).length).toBe(2);
+
     const catalog = await client.catalog();
-    console.log("Final source:", catalog.source);
     expect(catalog.source).toBe("marketplace");
     expect(catalog.skills).toEqual([
       {
@@ -115,7 +118,9 @@ describe("BifrostClient.catalog", () => {
     const baseUrl = serve(() => new Response("not found", { status: 404 }));
     const client = new BifrostClient({ baseUrl });
     await expect(client.catalog()).rejects.toMatchObject({ code: "unavailable" });
-    await expect(client.catalog()).rejects.toThrow(/Marketplace manifest not available|The all-skills bundle/i);
+    await expect(client.catalog()).rejects.toThrow(
+      /Marketplace manifest not available|The all-skills bundle/i,
+    );
   });
 });
 

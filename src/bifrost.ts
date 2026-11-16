@@ -128,7 +128,9 @@ export class BifrostClient implements Gateway {
       lastSource = "zip";
       if (archive.length > 0) return this.catalogResult("zip", archive, warnings);
     } else {
-      warnings.push("The all-skills bundle is unavailable or empty. Publish skills in the Bifrost dashboard.");
+      warnings.push(
+        "The all-skills bundle is unavailable or empty. Publish skills in the Bifrost dashboard.",
+      );
     }
 
     if (lastSource) return this.catalogResult(lastSource, [], warnings);
