@@ -121,19 +121,14 @@ export function formatRemove(result: RemoveResult): string {
 }
 
 export function formatConfig(summary: ConfigSummary): string {
-  const key = summary.hasApiKey
-    ? `set (${summary.apiKeyHint ?? "hidden"}, from ${summary.apiKeySource})`
-    : "not set";
   return [
     "**Bifrost skills configuration**",
     "",
     `- Gateway: \`${summary.baseUrl}\` (from ${summary.baseUrlSource})`,
-    `- API key: ${key}`,
     `- Timeout: ${summary.timeoutMs} ms`,
     `- Global skills: \`${displayPath(summary.globalSkillsDirectory)}\``,
     "",
     "Set a gateway with `/bifrost-config baseUrl=https://bifrost.example.com`.",
-    "Set a key with `/bifrost-config apiKey=...` (stored in plugin storage).",
   ].join("\n");
 }
 

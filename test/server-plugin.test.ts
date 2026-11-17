@@ -188,7 +188,6 @@ describe("server plugin", () => {
     expect([...harness.commands.keys()].sort()).toEqual([
       "bifrost-config",
       "bifrost-install",
-      "bifrost-install-all",
       "bifrost-list",
       "bifrost-remove",
       "bifrost-update",
@@ -199,8 +198,8 @@ describe("server plugin", () => {
     const baseUrl = startGateway();
     const harness = await setup();
 
-    await run(harness, "bifrost-config", `baseUrl=${baseUrl} apiKey=secret`);
-    expect(harness.storage.values.get("settings")).toMatchObject({ baseUrl, apiKey: "secret" });
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
+    expect(harness.storage.values.get("settings")).toMatchObject({ baseUrl });
     expect(harness.notices.at(-1)?.message).toBe("Bifrost settings saved.");
 
     await run(harness, "bifrost-install", "git-release");
@@ -215,6 +214,15 @@ describe("server plugin", () => {
     });
     expect(harness.synthetic.at(-1)?.text).toContain("**Installed git-release** v1.0.0 (global)");
     expect(harness.reloads).toBe(1);
+  });
+
+  test("rejects apiKey in /bifrost-config", async () => {
+    const baseUrl = startGateway();
+    const harness = await setup();
+
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl} apiKey=secret`);
+    expect(harness.notices.at(-1)?.kind).toBe("error");
+    expect(harness.notices.at(-1)?.message).toMatch(/API keys are no longer supported/i);
   });
 
   test("lists, updates, and removes", async () => {
@@ -243,7 +251,7 @@ describe("server plugin", () => {
     const baseUrl = startGateway();
     const harness = await setup();
     await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
-    await run(harness, "bifrost-install-all", "--project");
+    await run(harness, "bifrost-install", "--project");
 
     const project = path.join(root, "project", ".opencode", "skills");
     expect((await stat(path.join(project, "git-release"))).isDirectory()).toBe(true);
@@ -251,11 +259,30 @@ describe("server plugin", () => {
     expect(harness.synthetic.at(-1)?.text).toContain("**Installed 2 skills**");
   });
 
-  test("prints usage for a missing name", async () => {
+  test("installs all skills explicitly with selector", async () => {
+    state.bodies.set("changelog", body("changelog", "Changelog helper", "1.0.0"));
+    const baseUrl = startGateway();
     const harness = await setup();
-    await run(harness, "bifrost-install", "");
-    expect(harness.synthetic.at(-1)?.text).toContain("Usage: `/bifrost-install");
-    expect(harness.notices.at(-1)?.kind).toBe("error");
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
+    await run(harness, "bifrost-install", "all --project");
+
+    const project = path.join(root, "project", ".opencode", "skills");
+    expect((await stat(path.join(project, "git-release"))).isDirectory()).toBe(true);
+    expect((await stat(path.join(project, "changelog"))).isDirectory()).toBe(true);
+    expect(harness.synthetic.at(-1)?.text).toContain("**Installed 2 skills**");
+  });
+
+  test("installs with wildcard selector", async () => {
+    state.bodies.set("changelog", body("changelog", "Changelog helper", "1.0.0"));
+    const baseUrl = startGateway();
+    const harness = await setup();
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
+    await run(harness, "bifrost-install", "*");
+
+    const global = globalSkillsDirectory();
+    expect((await stat(path.join(global, "git-release"))).isDirectory()).toBe(true);
+    expect((await stat(path.join(global, "changelog"))).isDirectory()).toBe(true);
+    expect(harness.synthetic.at(-1)?.text).toContain("**Installed 2 skills**");
   });
 
   test("reports command failures in the transcript", async () => {

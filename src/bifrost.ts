@@ -1,13 +1,12 @@
 /**
  * HTTP client for a Bifrost gateway's Skills Repository.
  *
- * Three catalog sources are tried in order:
+ * Two catalog sources are tried in order:
  *
  * 1. `GET /api/skills/serve/claude-code/.claude-plugin/marketplace.json`
  *    (has versions; only registered when the gateway has an external client
  *    URL and `git` on PATH)
- * 2. `GET /api/skills` (management API; needs an API key)
- * 3. `GET /api/skills/serve/all/download.zip` (public, but names and
+ * 2. `GET /api/skills/serve/all/download.zip` (public, but names and
  *    descriptions only, no versions)
  *
  * Installs always use the public per-skill zip endpoint, so they keep working
@@ -58,7 +57,6 @@ export interface Gateway {
 
 export interface ClientOptions {
   baseUrl: string;
-  apiKey?: string;
   timeoutMs?: number;
 }
 
@@ -105,12 +103,10 @@ export function isValidBaseUrl(input: string): boolean {
 
 export class BifrostClient implements Gateway {
   readonly baseUrl: string;
-  private readonly apiKey?: string;
   private readonly timeoutMs: number;
 
   constructor(options: ClientOptions) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl);
-    this.apiKey = options.apiKey;
     this.timeoutMs =
       options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : DEFAULT_TIMEOUT_MS;
   }
@@ -123,18 +119,18 @@ export class BifrostClient implements Gateway {
     if (marketplace) {
       lastSource = "marketplace";
       if (marketplace.length > 0) return this.catalogResult("marketplace", marketplace, warnings);
-    }
-
-    const api = await this.apiCatalog(signal, warnings);
-    if (api) {
-      lastSource = "api";
-      if (api.length > 0) return this.catalogResult("api", api, warnings);
+    } else {
+      warnings.push("Marketplace manifest not available (HTTP 404). Using the public bundle.");
     }
 
     const archive = await this.zipCatalog(signal, warnings);
     if (archive) {
       lastSource = "zip";
       if (archive.length > 0) return this.catalogResult("zip", archive, warnings);
+    } else {
+      warnings.push(
+        "The all-skills bundle is unavailable or empty. Publish skills in the Bifrost dashboard.",
+      );
     }
 
     if (lastSource) return this.catalogResult(lastSource, [], warnings);
@@ -217,75 +213,6 @@ export class BifrostClient implements Gateway {
       warnings.push(`Could not parse the marketplace manifest: ${messageOf(error)}`);
       return undefined;
     }
-  }
-
-  private async apiCatalog(
-    signal: AbortSignal | undefined,
-    warnings: string[],
-  ): Promise<SkillSummary[] | undefined> {
-    const limit = 100;
-    const skills: SkillSummary[] = [];
-    let offset = 0;
-    let sawResponse = false;
-
-    for (let page = 0; page < 50; page += 1) {
-      const url = `${this.baseUrl}/api/skills?limit=${limit}&offset=${offset}`;
-      let response: Response;
-      try {
-        response = await this.request(url, {
-          accept: "application/json",
-          signal,
-          notFound: "The skills API",
-        });
-      } catch (error) {
-        if (
-          error instanceof BifrostError &&
-          (error.code === "not-found" || error.code === "unavailable")
-        ) {
-          return sawResponse ? skills : undefined;
-        }
-        if (error instanceof BifrostError && error.code === "unauthorized") {
-          // The bundle and per-skill routes are public on most gateways, so a
-          // rejected API key must not prevent the catalog fallback.
-          warnings.push("The skills API rejected the API key; falling back to the public bundle.");
-          return sawResponse ? skills : undefined;
-        }
-        throw error;
-      }
-      sawResponse = true;
-
-      try {
-        const data = (await response.json()) as unknown;
-        const items = readSkills(data);
-        if (!items) {
-          warnings.push("The skills API returned an unexpected response shape.");
-          return skills;
-        }
-        for (const item of items) {
-          const name = stringField(item, "name");
-          if (!name) continue;
-          const description = stringField(item, "description");
-          const version =
-            stringField(item, "latest_version") ?? stringField(item, "highest_version");
-          skills.push({
-            name,
-            id: skillId(name),
-            ...(description ? { description } : {}),
-            ...(version ? { version } : {}),
-          });
-        }
-        const total = numberField(data, "total");
-        offset += items.length;
-        if (items.length < limit) break;
-        if (total !== undefined && offset >= total) break;
-        if (items.length === 0) break;
-      } catch (error) {
-        warnings.push(`Could not parse the skills API response: ${messageOf(error)}`);
-        return sawResponse ? skills : undefined;
-      }
-    }
-
-    return skills;
   }
 
   private async zipCatalog(
@@ -448,10 +375,6 @@ export class BifrostClient implements Gateway {
     }
 
     const headers: Record<string, string> = { accept: options.accept };
-    if (this.apiKey) {
-      headers["x-bf-vk"] = this.apiKey;
-      headers.authorization = `Bearer ${this.apiKey}`;
-    }
 
     let response: Response;
     try {
@@ -491,7 +414,7 @@ export class BifrostClient implements Gateway {
     if (response.status === 401 || response.status === 403) {
       throw new BifrostError(
         "unauthorized",
-        `The gateway rejected the API key (HTTP ${response.status})${suffix}. Check the apiKey option or BIFROST_API_KEY.`,
+        `The gateway rejected the request (HTTP ${response.status})${suffix}. Check the gateway URL and your network.`,
         { status: response.status },
       );
     }
@@ -545,6 +468,11 @@ function dedupe(skills: SkillSummary[]): SkillSummary[] {
   return result.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function stringField(value: Record<string, unknown>, key: string): string | undefined {
+  const field = value[key];
+  return typeof field === "string" && field.trim() !== "" ? field.trim() : undefined;
+}
+
 function readPlugins(data: unknown): Array<Record<string, unknown>> | undefined {
   if (!data || typeof data !== "object") return undefined;
   const plugins = (data as { plugins?: unknown }).plugins;
@@ -552,26 +480,6 @@ function readPlugins(data: unknown): Array<Record<string, unknown>> | undefined 
   return plugins.filter(
     (item): item is Record<string, unknown> => !!item && typeof item === "object",
   );
-}
-
-function readSkills(data: unknown): Array<Record<string, unknown>> | undefined {
-  if (!data || typeof data !== "object") return undefined;
-  const skills = (data as { skills?: unknown }).skills;
-  if (!Array.isArray(skills)) return undefined;
-  return skills.filter(
-    (item): item is Record<string, unknown> => !!item && typeof item === "object",
-  );
-}
-
-function stringField(value: Record<string, unknown>, key: string): string | undefined {
-  const field = value[key];
-  return typeof field === "string" && field.trim() !== "" ? field.trim() : undefined;
-}
-
-function numberField(value: unknown, key: string): number | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  const field = (value as Record<string, unknown>)[key];
-  return typeof field === "number" && Number.isFinite(field) ? field : undefined;
 }
 
 function isAbort(error: unknown): boolean {

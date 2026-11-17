@@ -23,28 +23,12 @@ const ALIASES: Record<string, string> = {
   url: "baseUrl",
   "base-url": "baseUrl",
   baseurl: "baseUrl",
-  "api-key": "apiKey",
-  apikey: "apiKey",
-  key: "apiKey",
-  token: "apiKey",
-  "timeout-ms": "timeoutMs",
   timeout: "timeoutMs",
-  "clear-api-key": "clearApiKey",
-  "clear-key": "clearApiKey",
-  "no-api-key": "clearApiKey",
+  "timeout-ms": "timeoutMs",
 };
 
 /** Options that never take a value; the following token is positional. */
-const BOOLEAN_OPTIONS = new Set([
-  "project",
-  "global",
-  "force",
-  "verbose",
-  "reset",
-  "clearApiKey",
-  "help",
-  "all",
-]);
+const BOOLEAN_OPTIONS = new Set(["project", "global", "force", "verbose", "reset", "help", "all"]);
 
 export function canonicalOption(name: string): string {
   const normalized = name.replace(/^-+/, "");

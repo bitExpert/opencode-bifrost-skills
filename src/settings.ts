@@ -1,9 +1,6 @@
 /**
  * Settings and filesystem locations.
  *
- * Settings precedence (highest first):
- *   command-line override -> plugin storage -> plugin options -> environment -> default
- *
  * Skills live where OpenCode discovers them:
  *   global:  <OpenCode config dir>/skills
  *   project: <project>/.opencode/skills
@@ -87,10 +84,11 @@ export class SettingsStore {
     const value = await this.storage.get(SETTINGS_KEY).catch(() => undefined);
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
     const record = value as Record<string, unknown>;
+    // Scrub legacy apiKey if present, to avoid accumulating it in storage.
+    const { apiKey, ...cleanRecord } = record;
     return {
-      ...(typeof record.baseUrl === "string" ? { baseUrl: record.baseUrl } : {}),
-      ...(typeof record.apiKey === "string" ? { apiKey: record.apiKey } : {}),
-      ...(typeof record.timeoutMs === "number" ? { timeoutMs: record.timeoutMs } : {}),
+      ...(typeof cleanRecord.baseUrl === "string" ? { baseUrl: cleanRecord.baseUrl } : {}),
+      ...(typeof cleanRecord.timeoutMs === "number" ? { timeoutMs: cleanRecord.timeoutMs } : {}),
     };
   }
 
@@ -121,30 +119,6 @@ export class SettingsStore {
       baseUrlSource = "default";
     }
 
-    const commandKey = overrides.apiKey === null ? "" : overrides.apiKey?.trim();
-    const storedKey = stored.apiKey;
-    const optionKey = stringOption(this.options.apiKey);
-    const envKey = this.env.BIFROST_API_KEY?.trim();
-
-    let apiKey: string | undefined;
-    let apiKeySource: ResolvedSettings["apiKeySource"];
-    if (commandKey !== undefined) {
-      apiKey = commandKey === "" ? undefined : commandKey;
-      apiKeySource = commandKey === "" ? "none" : "command";
-    } else if (storedKey !== undefined) {
-      apiKey = storedKey === "" ? undefined : storedKey;
-      apiKeySource = storedKey === "" ? "none" : "storage";
-    } else if (optionKey) {
-      apiKey = optionKey;
-      apiKeySource = "options";
-    } else if (envKey) {
-      apiKey = envKey;
-      apiKeySource = "environment";
-    } else {
-      apiKey = undefined;
-      apiKeySource = "none";
-    }
-
     const timeoutMs =
       overrides.timeoutMs ??
       stored.timeoutMs ??
@@ -152,7 +126,7 @@ export class SettingsStore {
       numberOption(this.env.BIFROST_TIMEOUT_MS) ??
       20_000;
 
-    return { baseUrl, apiKey, timeoutMs, baseUrlSource, apiKeySource };
+    return { baseUrl, timeoutMs, baseUrlSource };
   }
 
   async update(patch: ConfigPatch): Promise<void> {
@@ -171,10 +145,6 @@ export class SettingsStore {
       }
       next.baseUrl = normalized;
     }
-    if (patch.apiKey !== undefined) {
-      if (patch.apiKey === null) next.apiKey = "";
-      else next.apiKey = patch.apiKey.trim();
-    }
     if (patch.timeoutMs !== undefined) {
       if (patch.timeoutMs <= 0)
         throw new BifrostError("invalid", "timeoutMs must be greater than zero.");
@@ -189,18 +159,10 @@ export class SettingsStore {
     return {
       baseUrl: resolved.baseUrl,
       baseUrlSource: resolved.baseUrlSource,
-      hasApiKey: !!resolved.apiKey,
-      apiKeySource: resolved.apiKeySource,
-      ...(resolved.apiKey ? { apiKeyHint: maskSecret(resolved.apiKey) } : {}),
       timeoutMs: resolved.timeoutMs,
       globalSkillsDirectory: globalSkillsDirectory(),
     };
   }
-}
-
-export function maskSecret(secret: string): string {
-  if (secret.length <= 8) return "********";
-  return `${secret.slice(0, 4)}…${secret.slice(-4)}`;
 }
 
 /** True when `child` resolves inside `parent` (no path traversal). */

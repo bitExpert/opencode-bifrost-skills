@@ -15,7 +15,11 @@
 export type InstallScope = "global" | "project";
 
 /** How the catalog was discovered. */
-export type CatalogSource = "marketplace" | "api" | "zip";
+/**
+ * The source used to build the catalog. The client first tries the marketplace manifest;
+ * if that fails or is empty it falls back to the public all‑skills bundle (`zip`).
+ */
+export type CatalogSource = "marketplace" | "zip";
 
 export interface SkillSummary {
   /** Raw Bifrost skill name. Used for `/api/skills/serve/{name}/download.zip`. */
@@ -28,13 +32,19 @@ export interface SkillSummary {
   plugin?: string;
 }
 
+/**
+ * A warning emitted while building the catalog. At the moment this is just a string,
+ * but a dedicated type makes it easier to evolve to a richer structure later.
+ */
+export type CatalogWarning = string;
+
 export interface Catalog {
   baseUrl: string;
   source: CatalogSource;
   fetchedAt: string;
   skills: SkillSummary[];
   /** Non-fatal problems encountered while building the catalog. */
-  warnings: string[];
+  warnings: CatalogWarning[];
 }
 
 /** Persisted next to an installed skill as `.bifrost-skill.json`. */
@@ -99,23 +109,19 @@ export interface RemoveResult {
 /** Settings as persisted in plugin storage. */
 export interface StoredSettings {
   baseUrl?: string;
-  apiKey?: string;
   timeoutMs?: number;
 }
 
 /** Settings after applying storage -> options -> environment precedence. */
 export interface ResolvedSettings {
   baseUrl: string;
-  apiKey?: string;
   timeoutMs: number;
   /** Where the base URL came from, for `/bifrost-config` output. */
   baseUrlSource: "command" | "storage" | "options" | "environment" | "default";
-  apiKeySource: "command" | "storage" | "options" | "environment" | "none";
 }
 
 export interface ConfigPatch {
   baseUrl?: string;
-  apiKey?: string | null;
   timeoutMs?: number;
   reset?: boolean;
 }
@@ -123,9 +129,6 @@ export interface ConfigPatch {
 export interface ConfigSummary {
   baseUrl: string;
   baseUrlSource: ResolvedSettings["baseUrlSource"];
-  hasApiKey: boolean;
-  apiKeySource: ResolvedSettings["apiKeySource"];
-  apiKeyHint?: string;
   timeoutMs: number;
   globalSkillsDirectory: string;
 }

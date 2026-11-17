@@ -1,13 +1,8 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { BifrostClient, BifrostError, normalizeBaseUrl } from "../src/bifrost.js";
 import { makeZip, skillMarkdown } from "./helpers.js";
 
 let server: ReturnType<typeof Bun.serve> | undefined;
-
-afterEach(() => {
-  server?.stop(true);
-  server = undefined;
-});
 
 function serve(routes: (request: Request) => Response | Promise<Response>) {
   server = Bun.serve({ port: 0, fetch: routes });
@@ -15,6 +10,11 @@ function serve(routes: (request: Request) => Response | Promise<Response>) {
 }
 
 describe("normalizeBaseUrl", () => {
+  afterEach(() => {
+    server?.stop(true);
+    server = undefined;
+  });
+
   test("adds a scheme and trims slashes", () => {
     expect(normalizeBaseUrl("bifrost.example.com")).toBe("http://bifrost.example.com");
     expect(normalizeBaseUrl("https://bifrost.example.com///")).toBe("https://bifrost.example.com");
@@ -35,7 +35,17 @@ describe("normalizeBaseUrl", () => {
 });
 
 describe("BifrostClient.catalog", () => {
-  test("falls back to the public bundle when the API is unauthorized", async () => {
+  beforeAll(() => {
+    if (server) {
+      server.stop(true);
+    }
+  });
+  afterEach(() => {
+    server?.stop(true);
+    server = undefined;
+  });
+
+  test("falls back to the public bundle when marketplace is not available", async () => {
     const bundle = makeZip({
       "git-release/SKILL.md": skillMarkdown("Release helper"),
       "changelog/SKILL.md": skillMarkdown("Changelog helper"),
@@ -43,7 +53,6 @@ describe("BifrostClient.catalog", () => {
     const baseUrl = serve((request) => {
       const url = new URL(request.url);
       if (url.pathname.endsWith("marketplace.json")) return new Response("nope", { status: 404 });
-      if (url.pathname === "/api/skills") return new Response("no", { status: 401 });
       if (url.pathname === "/api/skills/serve/all/download.zip") return new Response(bundle);
       return new Response("missing", { status: 404 });
     });
@@ -51,13 +60,20 @@ describe("BifrostClient.catalog", () => {
     const catalog = await new BifrostClient({ baseUrl }).catalog();
     expect(catalog.source).toBe("zip");
     expect(catalog.skills.map((skill) => skill.name)).toEqual(["changelog", "git-release"]);
-    expect(catalog.warnings.some((warning) => warning.includes("rejected the API key"))).toBe(true);
+    expect(catalog.warnings.some((warning) => warning.includes("not available (HTTP 404)"))).toBe(
+      true,
+    );
   });
 
   test("prefers the marketplace manifest and strips the plugin prefix", async () => {
+    const paths: string[] = [];
+    const statuses: number[] = [];
+    const archive = makeZip({ "git-release/SKILL.md": skillMarkdown("Release helper") });
     const baseUrl = serve((request) => {
       const url = new URL(request.url);
+      paths.push(url.pathname);
       if (url.pathname.endsWith("marketplace.json")) {
+        statuses.push(200);
         return Response.json({
           plugins: [
             { name: "bifrost-git-release", description: "Release helper", version: "1.2.0" },
@@ -65,10 +81,26 @@ describe("BifrostClient.catalog", () => {
           ],
         });
       }
+      if (url.pathname === "/api/skills/serve/all/download.zip") {
+        statuses.push(200);
+        return new Response(archive);
+      }
+      statuses.push(404);
       return new Response("missing", { status: 404 });
     });
 
-    const catalog = await new BifrostClient({ baseUrl }).catalog();
+    const client = new BifrostClient({ baseUrl });
+    const warnings: string[] = [];
+    const marketplace = await (
+      client as unknown as {
+        marketplaceCatalog: (signal: unknown, warnings: string[]) => Promise<unknown>;
+      }
+    ).marketplaceCatalog(undefined, warnings);
+    expect(marketplace).toBeDefined();
+    expect(Array.isArray(marketplace)).toBe(true);
+    expect((marketplace as unknown[]).length).toBe(2);
+
+    const catalog = await client.catalog();
     expect(catalog.source).toBe("marketplace");
     expect(catalog.skills).toEqual([
       {
@@ -82,34 +114,28 @@ describe("BifrostClient.catalog", () => {
     ]);
   });
 
-  test("reads versions from the skills API", async () => {
-    const baseUrl = serve((request) => {
-      const url = new URL(request.url);
-      if (url.pathname.endsWith("marketplace.json")) return new Response("nope", { status: 404 });
-      if (url.pathname === "/api/skills") {
-        return Response.json({
-          skills: [{ name: "git-release", description: "Release helper", latest_version: "2.0.0" }],
-          total: 1,
-        });
-      }
-      return new Response("missing", { status: 404 });
-    });
-
-    const catalog = await new BifrostClient({ baseUrl, apiKey: "key" }).catalog();
-    expect(catalog.source).toBe("api");
-    expect(catalog.skills[0]).toMatchObject({ name: "git-release", version: "2.0.0" });
-  });
-
-  test("reports every endpoint as unavailable", async () => {
-    const baseUrl = serve(
-      () => new Response("down", { status: 503, headers: { "retry-after": "30" } }),
-    );
+  test("fails when neither catalog source is available", async () => {
+    const baseUrl = serve(() => new Response("not found", { status: 404 }));
     const client = new BifrostClient({ baseUrl });
     await expect(client.catalog()).rejects.toMatchObject({ code: "unavailable" });
+    await expect(client.catalog()).rejects.toThrow(
+      /Marketplace manifest not available|The all-skills bundle/i,
+    );
   });
 });
 
 describe("BifrostClient.downloadSkill", () => {
+  beforeAll(() => {
+    // Ensure no leftover server from previous describe blocks
+    if (server) {
+      server.stop(true);
+    }
+  });
+  afterEach(() => {
+    server?.stop(true);
+    server = undefined;
+  });
+
   test("requests the encoded per-skill zip route", async () => {
     const archive = makeZip({ "git-release/SKILL.md": skillMarkdown("Release helper") });
     const paths: string[] = [];
@@ -175,7 +201,7 @@ describe("BifrostClient.downloadSkill", () => {
     await expect(client.downloadAll()).rejects.toMatchObject({ code: "timeout" });
   });
 
-  test("sends the API key on both accepted headers", async () => {
+  test("sends no credential headers", async () => {
     let seen: Headers | undefined;
     const archive = makeZip({ "s/SKILL.md": skillMarkdown("x") });
     const baseUrl = serve((request) => {
@@ -183,8 +209,8 @@ describe("BifrostClient.downloadSkill", () => {
       return new Response(archive);
     });
 
-    await new BifrostClient({ baseUrl, apiKey: "secret" }).downloadSkill("s");
-    expect(seen?.get("x-bf-vk")).toBe("secret");
-    expect(seen?.get("authorization")).toBe("Bearer secret");
+    await new BifrostClient({ baseUrl }).downloadSkill("s");
+    expect(seen?.has("x-bf-vk")).toBe(false);
+    expect(seen?.has("authorization")).toBe(false);
   });
 });
