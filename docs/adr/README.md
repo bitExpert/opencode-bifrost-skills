@@ -33,6 +33,7 @@ rationale easier to discover and discuss.
 | 0010 | [Provide forgiving slash commands with non-model transcript reporting](0010-commands.md)    | Superseded |
 | 0011 | [Use minimal runtime dependencies and Bun-native tooling](0011-dependencies.md)             | Proposed   |
 | 0012 | [Use only public skill routes; no management credentials](0012-public-skill-routes.md)      | Proposed   |
+| 0013 | [Unified install slash command](0013-unified-install-command.md)                            | Proposed   |
 
 ## Notes
 
@@ -40,3 +41,4 @@ rationale easier to discover and discuss.
   their status is **Proposed** until formally reviewed and accepted.
 - Where an ADR mentions package metadata inconsistencies (for example repository vs. homepage
   URLs), those are documentation/hygiene items and may be addressed without creating a new ADR.
+- ADRs 0010, 0012 supersede earlier management API usage. ADR 0013 unifies install commands.

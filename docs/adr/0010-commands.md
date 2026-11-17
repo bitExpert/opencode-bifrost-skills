@@ -1,6 +1,6 @@
 # ADR-0010: Provide forgiving slash commands with non-model transcript reporting
 
-- **Status:** Superseded by ADR-0012
+- **Status:** Superseded by ADR-0012 and ADR-0013
 - **Amended:** 2026-11-16
 - **Date:** 2026-11-16
 - **Deciders:** Maintainers of `@bitexpert/opencode-bifrost-skills`
@@ -17,11 +17,12 @@ to a session transcript.
 
 - Register non-interactive slash commands in the server part:
   - `/bifrost-install <skill> [--project] [--force]`
-  - `/bifrost-install-all [--project] [--force]`
   - `/bifrost-list`
   - `/bifrost-update [<skill>|all] [--global|--project]`
   - `/bifrost-remove <skill> [--global|--project]`
   - `/bifrost-config [options] [--reset]`
+  - ~~`/bifrost-install-all [--project] [--force]`~~ — merged into
+    `/bifrost-install [<skill>|all]` by ADR-0013.
 - The interactive catalog browser lives in the TUI as `/bifrost-skills`.
 - Parse arguments with a tolerant tokenizer/parser (`src/args.ts`):
   - Accept `--kebab-case`, `camelCase`, and bare `key=value` forms.

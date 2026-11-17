@@ -197,61 +197,46 @@ export default Plugin.define({
     await ctx.command.transform((editor) => {
       editor.add({
         name: "bifrost-install",
-        description: "Install an Agent Skill from the Bifrost gateway (--project, --force)",
+        description:
+          "Install an Agent Skill or all skills from the Bifrost gateway [--project] [--force]",
         execute: async (invocation) => {
           const outcome = await runCommand(async () => {
             const args = parseArgs(invocation.prompt.text);
-            const name = args.positionals[0];
-            if (!name) {
-              return {
-                text: "Usage: `/bifrost-install <skill> [--project] [--force]`",
-                notice: "A skill name is required.",
-                kind: "error",
-              };
-            }
+            const selector = args.positionals[0] ?? "all";
             const scope = readScope(args) ?? "global";
             const directory =
               scope === "project" ? await sessionDirectory(ctx, invocation.sessionID) : undefined;
+            const force = readBoolean(args, "force");
+
+            if (selector === "all" || selector === "*") {
+              const result = await operations.installAll({
+                scope,
+                directory,
+                force,
+              });
+              const failures = result.failures.length + result.skipped.length;
+              return {
+                text: formatBatch(result),
+                notice:
+                  result.results.length > 0
+                    ? `Installed ${result.results.length} skill${result.results.length === 1 ? "" : "s"}`
+                    : failures > 0
+                      ? "No skills were installed."
+                      : "Nothing to install.",
+                kind: result.results.length > 0 ? (failures > 0 ? "warning" : "success") : "error",
+              };
+            }
+
             const result = await operations.install({
-              name,
+              name: selector,
               scope,
               directory,
-              force: readBoolean(args, "force"),
+              force,
             });
             return {
               text: formatInstall(result),
               notice: `${result.action === "unchanged" ? "Unchanged" : "Installed"} ${result.id} (${result.scope})`,
               kind: "success",
-            };
-          });
-          await report(ctx, emitNotice, invocation.sessionID, outcome);
-        },
-      });
-
-      editor.add({
-        name: "bifrost-install-all",
-        description: "Install every skill served by the Bifrost gateway (--project, --force)",
-        execute: async (invocation) => {
-          const outcome = await runCommand(async () => {
-            const args = parseArgs(invocation.prompt.text);
-            const scope = readScope(args) ?? "global";
-            const directory =
-              scope === "project" ? await sessionDirectory(ctx, invocation.sessionID) : undefined;
-            const result = await operations.installAll({
-              scope,
-              directory,
-              force: readBoolean(args, "force"),
-            });
-            const failures = result.failures.length + result.skipped.length;
-            return {
-              text: formatBatch(result),
-              notice:
-                result.results.length > 0
-                  ? `Installed ${result.results.length} skill${result.results.length === 1 ? "" : "s"}`
-                  : failures > 0
-                    ? "No skills were installed."
-                    : "Nothing to install.",
-              kind: result.results.length > 0 ? (failures > 0 ? "warning" : "success") : "error",
             };
           });
           await report(ctx, emitNotice, invocation.sessionID, outcome);
