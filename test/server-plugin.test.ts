@@ -190,7 +190,6 @@ describe("server plugin", () => {
       "bifrost-install",
       "bifrost-list",
       "bifrost-remove",
-      "bifrost-skills",
       "bifrost-update",
     ]);
   });
@@ -252,7 +251,7 @@ describe("server plugin", () => {
     const baseUrl = startGateway();
     const harness = await setup();
     await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
-    await run(harness, "bifrost-install", "--project");
+    await run(harness, "bifrost-install", "all --project");
 
     const project = path.join(root, "project", ".opencode", "skills");
     expect((await stat(path.join(project, "git-release"))).isDirectory()).toBe(true);
@@ -293,29 +292,81 @@ describe("server plugin", () => {
     expect(harness.notices.at(-1)?.kind).toBe("error");
   });
 
-  test("lists the catalog with /bifrost-skills", async () => {
+  test("lists the catalog when /bifrost-install has no selector", async () => {
     const baseUrl = startGateway();
     const harness = await setup();
     await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
-    await run(harness, "bifrost-skills", "");
+    await run(harness, "bifrost-install", "");
 
     const text = harness.synthetic.at(-1)?.text ?? "";
     expect(text).toContain("**Available Bifrost skills (1)**");
-    expect(text).toContain("| `git-release` | v1.0.0 |");
+    expect(text).toContain("| `git-release` | v1.0.0 | — |");
     expect(text).toContain("git-release helper");
+    expect(text).toContain("Install with `/bifrost-install <skill>");
     expect(harness.notices.at(-1)?.message).toContain("1 skill from marketplace");
   });
 
-  test("/bifrost-skills reports empty catalog gracefully", async () => {
+  test("listing the catalog writes no skills", async () => {
+    const baseUrl = startGateway();
+    const harness = await setup();
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
+    await run(harness, "bifrost-install", "");
+
+    await expect(stat(globalSkillsDirectory())).rejects.toBeDefined();
+    await expect(stat(path.join(root, "project", ".opencode", "skills"))).rejects.toBeDefined();
+    expect(harness.reloads).toBe(0);
+  });
+
+  test("marks already installed skills in the catalog", async () => {
+    const baseUrl = startGateway();
+    const harness = await setup();
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
+    await run(harness, "bifrost-install", "git-release");
+    await run(harness, "bifrost-install", "");
+
+    const text = harness.synthetic.at(-1)?.text ?? "";
+    expect(text).toContain("| `git-release` | v1.0.0 | ✓ global |");
+    expect(text).toContain("✓ already installed");
+  });
+
+  test("reports an empty catalog gracefully", async () => {
     state.bodies.clear();
     const baseUrl = startGateway();
     const harness = await setup();
     await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
-    await run(harness, "bifrost-skills", "");
+    await run(harness, "bifrost-install", "");
 
     const text = harness.synthetic.at(-1)?.text ?? "";
     expect(text).toContain("No skills found in the catalog");
     expect(text).toContain(baseUrl);
+  });
+
+  test("/bifrost-update requires a selector", async () => {
+    const baseUrl = startGateway();
+    const harness = await setup();
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
+    await run(harness, "bifrost-install", "git-release");
+    await run(harness, "bifrost-update", "");
+
+    const text = harness.synthetic.at(-1)?.text ?? "";
+    expect(text).toContain("Usage: `/bifrost-update <skill>|all");
+    expect(text).not.toContain("Updated");
+    expect(harness.notices.at(-1)).toMatchObject({
+      kind: "info",
+      message: "A skill name or `all` is required.",
+    });
+  });
+
+  test("/bifrost-remove reports missing arguments as info", async () => {
+    const harness = await setup();
+    await run(harness, "bifrost-remove", "");
+
+    const text = harness.synthetic.at(-1)?.text ?? "";
+    expect(text).toContain("Usage: `/bifrost-remove <skill>");
+    expect(harness.notices.at(-1)).toMatchObject({
+      kind: "info",
+      message: "A skill name is required.",
+    });
   });
 
   test("serves catalog, install, and list over RPC", async () => {

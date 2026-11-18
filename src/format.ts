@@ -140,7 +140,7 @@ export function formatCatalogSummary(catalog: Catalog): string {
   ].join(" · ");
 }
 
-export function formatCatalog(catalog: Catalog): string {
+export function formatCatalog(catalog: Catalog, installed: readonly InstalledSkill[] = []): string {
   if (catalog.skills.length === 0) {
     return [
       "No skills found in the catalog.",
@@ -150,19 +150,35 @@ export function formatCatalog(catalog: Catalog): string {
     ].join("\n");
   }
 
+  const installedScopes = new Map<string, InstalledSkill["scope"][]>();
+  for (const item of installed) {
+    const scopes = installedScopes.get(item.id) ?? [];
+    if (!scopes.includes(item.scope)) scopes.push(item.scope);
+    installedScopes.set(item.id, scopes);
+  }
+
   const lines = [
     `**Available Bifrost skills (${catalog.skills.length})**`,
     "",
     `Gateway: ${catalog.baseUrl} (${catalog.source})`,
     "",
-    "| Skill | Version | Description |",
-    "| --- | --- | --- |",
+    "| Skill | Version | Status | Description |",
+    "| --- | --- | --- | --- |",
   ];
 
+  let anyInstalled = false;
   for (const skill of catalog.skills) {
     const version = skill.version ? `v${skill.version}` : "—";
     const description = skill.description?.replace(/\|/g, "\\|") ?? "No description";
-    lines.push(`| \`${skill.id}\` | ${version} | ${description} |`);
+    const scopes = installedScopes.get(skill.id) ?? [];
+    if (scopes.length > 0) anyInstalled = true;
+    const status = scopes.length > 0 ? `✓ ${scopes.join(", ")}` : "—";
+    lines.push(`| \`${skill.id}\` | ${version} | ${status} | ${description} |`);
+  }
+
+  if (anyInstalled) {
+    lines.push("");
+    lines.push("✓ already installed");
   }
 
   if (catalog.warnings.length > 0) {

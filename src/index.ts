@@ -200,11 +200,24 @@ export default Plugin.define({
       editor.add({
         name: "bifrost-install",
         description:
-          "Install an Agent Skill or all skills from the Bifrost gateway [--project] [--force]",
+          "List available Agent Skills, install one, or install all (all|*) [--project] [--global] [--force]",
         execute: async (invocation) => {
           const outcome = await runCommand(async () => {
             const args = parseArgs(invocation.prompt.text);
-            const selector = args.positionals[0] ?? "all";
+            const selector = args.positionals[0];
+            if (!selector) {
+              const directory = await sessionDirectory(ctx, invocation.sessionID);
+              const [catalog, installed] = await Promise.all([
+                operations.catalog({}),
+                operations.list(directory),
+              ]);
+              return {
+                text: formatCatalog(catalog, installed),
+                notice: formatCatalogSummary(catalog),
+                kind: "info",
+              };
+            }
+
             const scope = readScope(args) ?? "global";
             const directory =
               scope === "project" ? await sessionDirectory(ctx, invocation.sessionID) : undefined;
@@ -266,29 +279,20 @@ export default Plugin.define({
       });
 
       editor.add({
-        name: "bifrost-skills",
-        description:
-          "Browse the Bifrost skills catalog (TUI: interactive dialog; headless: list all skills)",
-        execute: async (invocation) => {
-          const outcome = await runCommand(async () => {
-            const catalog = await operations.catalog({});
-            return {
-              text: formatCatalog(catalog),
-              notice: formatCatalogSummary(catalog),
-              kind: "info",
-            };
-          });
-          await report(ctx, emitNotice, invocation.sessionID, outcome);
-        },
-      });
-
-      editor.add({
         name: "bifrost-update",
-        description: "Update installed Bifrost skills when the gateway has newer content",
+        description:
+          "Update an installed Bifrost skill, or all installed skills with the `all` selector",
         execute: async (invocation) => {
           const outcome = await runCommand(async () => {
             const args = parseArgs(invocation.prompt.text);
-            const name = args.positionals[0] ?? "all";
+            const name = args.positionals[0];
+            if (!name) {
+              return {
+                text: "Usage: `/bifrost-update <skill>|all [--global|--project]`",
+                notice: "A skill name or `all` is required.",
+                kind: "info",
+              };
+            }
             const scope = readScope(args);
             const directory = await sessionDirectory(ctx, invocation.sessionID);
             const result = await operations.update({ name, scope, directory });
@@ -321,7 +325,7 @@ export default Plugin.define({
               return {
                 text: "Usage: `/bifrost-remove <skill> [--global|--project]`",
                 notice: "A skill name is required.",
-                kind: "error",
+                kind: "info",
               };
             }
             const directory = await sessionDirectory(ctx, invocation.sessionID);

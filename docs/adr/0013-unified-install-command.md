@@ -1,6 +1,6 @@
 # ADR-0013: Unified install slash command
 
-- **Status:** Proposed (implemented)
+- **Status:** Superseded by [ADR-0014](0014-install-lists-update-requires-selector.md) (selector semantics)
 - **Date:** 2026-11-17
 - **Deciders:** Maintainers of `@bitexpert/opencode-bifrost-skills`
 
@@ -24,7 +24,8 @@ We wanted to adopt the same convention for install to keep the UX consistent.
 
 - **Unify** `/bifrost-install` and `/bifrost-install-all` into a single command.
 - **Selector semantics:**
-  - No argument, `all`, or `*` → batch install (all skills)
+  - No argument → list the catalog (changed by ADR-0014)
+  - `all` or `*` → batch install (all skills)
   - Any other name → single install by that name
 - **Flags stay the same:** `--global` / `--project`, `--force`
 - **RPC and internal operations remain unchanged:** `install` and `installAll` are
@@ -52,11 +53,11 @@ We wanted to adopt the same convention for install to keep the UX consistent.
 
 ## Migration guide
 
-| Old command                      | New equivalent               |
-| -------------------------------- | ---------------------------- |
-| `/bifrost-install-all`           | `/bifrost-install`           |
-| `/bifrost-install-all --project` | `/bifrost-install --project` |
-| `/bifrost-install-all --force`   | `/bifrost-install --force`   |
+| Old command                      | New equivalent                   |
+| -------------------------------- | -------------------------------- |
+| `/bifrost-install-all`           | `/bifrost-install all`           |
+| `/bifrost-install-all --project` | `/bifrost-install all --project` |
+| `/bifrost-install-all --force`   | `/bifrost-install all --force`   |
 
 ## Notes
 
