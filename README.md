@@ -102,14 +102,14 @@ it when the task matches its description.
 
 ## Commands
 
-| Command                           | Arguments and flags                   | Description                                                                                                       |
-| --------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `/bifrost-skills`                 | —                                     | Browse the catalog, pick a scope, install. Asks before replacing an existing skill and offers to install another. |
-| `/bifrost-install [<skill>\|all]` | `--global` \| `--project`, `--force`  | Install one skill (by name) or all skills from the all-skills bundle. Defaults to `all` if no selector given.     |
-| `/bifrost-list`                   | —                                     | List installed Bifrost skills in both global and project scope.                                                   |
-| `/bifrost-update [<skill>\|all]`  | `--global` \| `--project`             | Update installed skills. Defaults to `all` and checks the global and session project scopes.                      |
-| `/bifrost-remove <skill>`         | `--global` \| `--project`             | Remove an installed skill. Scope is required when the skill exists in both.                                       |
-| `/bifrost-config`                 | `baseUrl=…`, `timeoutMs=…`, `--reset` | Show or change gateway settings.                                                                                  |
+| Command                           | Arguments and flags                   | Description                                                                                                   |
+| --------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `/bifrost-skills`                 | —                                     | TUI: browse the catalog interactively, pick a scope, install. Headless/SDK: list all available skills.        |
+| `/bifrost-install [<skill>\|all]` | `--global` \| `--project`, `--force`  | Install one skill (by name) or all skills from the all-skills bundle. Defaults to `all` if no selector given. |
+| `/bifrost-list`                   | —                                     | List installed Bifrost skills in both global and project scope.                                               |
+| `/bifrost-update [<skill>\|all]`  | `--global` \| `--project`             | Update installed skills. Defaults to `all` and checks the global and session project scopes.                  |
+| `/bifrost-remove <skill>`         | `--global` \| `--project`             | Remove an installed skill. Scope is required when the skill exists in both.                                   |
+| `/bifrost-config`                 | `baseUrl=…`, `timeoutMs=…`, `--reset` | Show or change gateway settings.                                                                              |
 
 ### Flag notes
 

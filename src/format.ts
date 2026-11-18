@@ -139,3 +139,42 @@ export function formatCatalogSummary(catalog: Catalog): string {
     versioned > 0 ? `${versioned} with version metadata` : "no version metadata",
   ].join(" · ");
 }
+
+export function formatCatalog(catalog: Catalog): string {
+  if (catalog.skills.length === 0) {
+    return [
+      "No skills found in the catalog.",
+      "",
+      `Gateway: ${catalog.baseUrl} (${catalog.source})`,
+      ...(catalog.warnings.length > 0 ? ["", ...catalog.warnings.map((w) => `• ${w}`)] : []),
+    ].join("\n");
+  }
+
+  const lines = [
+    `**Available Bifrost skills (${catalog.skills.length})**`,
+    "",
+    `Gateway: ${catalog.baseUrl} (${catalog.source})`,
+    "",
+    "| Skill | Version | Description |",
+    "| --- | --- | --- |",
+  ];
+
+  for (const skill of catalog.skills) {
+    const version = skill.version ? `v${skill.version}` : "—";
+    const description = skill.description?.replace(/\|/g, "\\|") ?? "No description";
+    lines.push(`| \`${skill.id}\` | ${version} | ${description} |`);
+  }
+
+  if (catalog.warnings.length > 0) {
+    lines.push("");
+    lines.push("**Warnings:**");
+    for (const warning of catalog.warnings) {
+      lines.push(`• ${warning}`);
+    }
+  }
+
+  lines.push("");
+  lines.push("Install with `/bifrost-install <skill> [--project|--global]`.");
+
+  return lines.join("\n");
+}

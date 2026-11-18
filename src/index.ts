@@ -19,6 +19,8 @@ import { parseArgs, readBoolean, readScope, readString, readTimeout } from "./ar
 import { BifrostError, describeError } from "./bifrost.js";
 import {
   formatBatch,
+  formatCatalog,
+  formatCatalogSummary,
   formatConfig,
   formatInstall,
   formatList,
@@ -256,6 +258,23 @@ export default Plugin.define({
                 skills.length > 0
                   ? `${skills.length} Bifrost skill${skills.length === 1 ? "" : "s"} installed`
                   : "No Bifrost skills installed.",
+              kind: "info",
+            };
+          });
+          await report(ctx, emitNotice, invocation.sessionID, outcome);
+        },
+      });
+
+      editor.add({
+        name: "bifrost-skills",
+        description:
+          "Browse the Bifrost skills catalog (TUI: interactive dialog; headless: list all skills)",
+        execute: async (invocation) => {
+          const outcome = await runCommand(async () => {
+            const catalog = await operations.catalog({});
+            return {
+              text: formatCatalog(catalog),
+              notice: formatCatalogSummary(catalog),
               kind: "info",
             };
           });

@@ -190,6 +190,7 @@ describe("server plugin", () => {
       "bifrost-install",
       "bifrost-list",
       "bifrost-remove",
+      "bifrost-skills",
       "bifrost-update",
     ]);
   });
@@ -290,6 +291,31 @@ describe("server plugin", () => {
     await run(harness, "bifrost-install", "git-release");
     expect(harness.synthetic.at(-1)?.text).toContain("Bifrost skills error");
     expect(harness.notices.at(-1)?.kind).toBe("error");
+  });
+
+  test("lists the catalog with /bifrost-skills", async () => {
+    const baseUrl = startGateway();
+    const harness = await setup();
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
+    await run(harness, "bifrost-skills", "");
+
+    const text = harness.synthetic.at(-1)?.text ?? "";
+    expect(text).toContain("**Available Bifrost skills (1)**");
+    expect(text).toContain("| `git-release` | v1.0.0 |");
+    expect(text).toContain("git-release helper");
+    expect(harness.notices.at(-1)?.message).toContain("1 skill from marketplace");
+  });
+
+  test("/bifrost-skills reports empty catalog gracefully", async () => {
+    state.bodies.clear();
+    const baseUrl = startGateway();
+    const harness = await setup();
+    await run(harness, "bifrost-config", `baseUrl=${baseUrl}`);
+    await run(harness, "bifrost-skills", "");
+
+    const text = harness.synthetic.at(-1)?.text ?? "";
+    expect(text).toContain("No skills found in the catalog");
+    expect(text).toContain(baseUrl);
   });
 
   test("serves catalog, install, and list over RPC", async () => {
