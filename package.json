@@ -42,7 +42,7 @@
     "check": "npm run lint && npm run typecheck && npm run test"
   },
   "dependencies": {
-    "@opencode/plugin": "2.3.2",
+    "@opencode/plugin": "2.4.1",
     "fflate": "^0.8.2",
     "yaml": "^2.6.1"
   },
